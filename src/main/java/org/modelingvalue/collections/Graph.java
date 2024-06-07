@@ -21,38 +21,57 @@
 package org.modelingvalue.collections;
 
 import org.modelingvalue.collections.impl.GraphImpl;
+import org.modelingvalue.collections.impl.ListImpl;
+import org.modelingvalue.collections.util.Mergeable;
+import org.modelingvalue.collections.util.Triple;
 
-public interface Graph<V, E> {
-    static <V, E> Graph<V, E> of() {
-        return new GraphImpl<>(Map.of());
+import java.util.function.Predicate;
+
+public interface Graph<V, E> extends ContainingCollection<Triple<V, E, V>>, Mergeable<Graph<V, E>> {
+
+    @SafeVarargs
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    static <V, E> Graph<V, E> of(Triple<V, E, V>... e) {
+        return e.length == 0 ? new GraphImpl(new Triple[]{}) : new GraphImpl<>(e);
     }
 
-    Collection<V> getAllNodes();
-
-    Graph<V, E> addNode(V node);
+    Set<V> getNodes();
 
     Graph<V, E> removeNode(V node);
 
     boolean containsNode(V node);
 
-    Graph<V, E> putEdge(V src, V dest, E val);
+    Graph<V, E> putEdge(V src, V dst, E val);
 
-    E getEdge(V src, V dest);
+    boolean containsEdge(V src, V dst, E val);
 
-    Map<V, E> getIncomingEdges(V node);
+    Graph<V, E> removeEdge(V src, V dst, E val);
 
-    Map<V, E> getOutgoingEdges(V node);
+    Graph<V, E> removeEdges(V src, V dst);
 
-    Graph<V, E> removeEdge(V src, V dest);
+    Set<E> getEdges(V src, V dst);
 
-    default boolean containsEdge(V src, V dest) {
-        return getEdge(src, dest) != null;
-    }
+    Map<E, Set<V>> getIncoming(V node);
 
-    default boolean hasCycles() {
+    Set<V> getIncoming(V node, E val);
+
+    Map<E, Set<V>> getOutgoing(V node);
+
+    Set<V> getOutgoing(V node, E val);
+
+    Set<E> getIncomingEdges(V node);
+
+    Set<E> getOutgoingEdges(V node);
+
+    Set<V> getIncomingNodes(V node);
+
+    Set<V> getOutgoingNodes(V node);
+
+    default boolean hasCycles(Predicate<V> skipNode, Predicate<Triple<V, E, V>> skipEdge) {
         var safe = new java.util.HashSet<V>();
 
-        nextNode: for (V node : getAllNodes()) {
+        nextNode: for (V node : getNodes()) {
+            if (skipNode.test(node)) continue;
             var active = new java.util.HashSet<V>();
             var queue = new java.util.LinkedList<V>();
             queue.add(node);
@@ -62,11 +81,17 @@ public interface Graph<V, E> {
                 active.add(curr);
                 if (safe.contains(curr)) continue nextNode;
 
-                for (V next : getOutgoingEdges(curr).toKeys()) {
-                    if (active.contains(next)) {
-                        return true;
-                    } else {
-                        queue.add(next);
+                for (Entry<E, Set<V>> entry : getOutgoing(curr)) {
+                    for (V next : entry.getValue()) {
+                        if (skipNode.test(next) || skipEdge.test(Triple.of(curr, entry.getKey(), next))) {
+                            continue;
+                        }
+
+                        if (active.contains(next)) {
+                            return true;
+                        } else {
+                            queue.add(next);
+                        }
                     }
                 }
             }
@@ -77,5 +102,7 @@ public interface Graph<V, E> {
         return false;
     }
 
-    int size();
+    Graph<V, E> inverted();
+
+    int numEdges();
 }
