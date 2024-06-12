@@ -26,7 +26,6 @@ import org.modelingvalue.collections.List;
 import org.modelingvalue.collections.Map;
 import org.modelingvalue.collections.Set;
 import org.modelingvalue.collections.mutable.MutableList;
-import org.modelingvalue.collections.mutable.MutableMap;
 import org.modelingvalue.collections.util.*;
 
 import java.io.Serial;
@@ -39,142 +38,123 @@ public class GraphImpl<V, E> extends CollectionImpl<Triple<V, E, V>> implements 
     @Serial
     private static final long serialVersionUID = -9154911675408612745L;
 
-    // incoming (edge -> set of vertices)
-    // outgoing (edge -> set of vertices)
-    // incoming (vertex -> set of edges)
-    // outgoing (vertex -> set of edges)
-//    protected Map<V, Quadruple<Map<E, Set<V>>, Map<E, Set<V>>, Map<V, Set<E>>, Map<V, Set<E>>>> g;
-    protected Map<V, Pair<Map<E, Set<V>>, Map<E, Set<V>>>> evGraph;
-    protected Map<V, Pair<Map<V, Set<E>>, Map<V, Set<E>>>> veGraph;
+    protected Map<V, Pair<Map<V, Set<E>>, Map<E, Set<V>>>> outgoing;
+    protected Map<V, Pair<Map<V, Set<E>>, Map<E, Set<V>>>> incoming;
 
     public GraphImpl(Triple<V, E, V>[] edges) {
-        this.evGraph = Map.of();
-        this.veGraph = Map.of();
+        this.outgoing = Map.of();
+        this.incoming = Map.of();
 
         for (Triple<V, E, V> edge : edges) {
             GraphImpl<V, E> next = this.putEdge(edge.a(), edge.c(), edge.b());
-            this.evGraph = next.evGraph;
-            this.veGraph = next.veGraph;
+            this.outgoing = next.outgoing;
+            this.incoming = next.incoming;
         }
     }
 
-    protected GraphImpl(Map<V, Pair<Map<E, Set<V>>, Map<E, Set<V>>>> evGraph, Map<V, Pair<Map<V, Set<E>>, Map<V, Set<E>>>> veGraph) {
-        this.evGraph = evGraph;
-        this.veGraph = veGraph;
+    protected GraphImpl(Map<V, Pair<Map<V, Set<E>>, Map<E, Set<V>>>> outgoing) {
+        if (outgoing == null) {
+            this.outgoing = this.incoming = Map.of();
+            return;
+        }
+
+        this.outgoing = outgoing;
+        this.incoming = getReversedMap(outgoing);
+    }
+
+    private Map<V, Pair<Map<V, Set<E>>, Map<E, Set<V>>>> getReversedMap(Map<V, Pair<Map<V, Set<E>>, Map<E, Set<V>>>> graph) {
+        Map<V, Pair<Map<V, Set<E>>, Map<E, Set<V>>>> reversed = Map.of();
+
+        for (var outer : graph) {
+            for (var inner : outer.getValue().a()) {
+                for (var val : inner.getValue()) {
+                    V src = outer.getKey(), dst = inner.getKey();
+                    var maps = reversed.getOrDefault(dst, Pair.of(Map.of(), Map.of()));
+                    var ve = maps.a(); var ev = maps.b();
+
+                    ve = ve.put(src, ve.getOrDefault(src, Set.of()).add(val));
+                    ev = ev.put(val, ev.getOrDefault(val, Set.of()).add(src));
+                    reversed = reversed.put(dst, Pair.of(ve, ev));
+                }
+            }
+        }
+
+        return reversed;
+    }
+
+    protected GraphImpl(Map<V, Pair<Map<V, Set<E>>, Map<E, Set<V>>>> outgoing, Map<V, Pair<Map<V, Set<E>>, Map<E, Set<V>>>> incoming) {
+        if (incoming == null && outgoing == null) {
+            this.incoming = Map.of();
+            this.outgoing = Map.of();
+        } else if (incoming == null) {
+            this.incoming = getReversedMap(outgoing);
+            this.outgoing = outgoing;
+        } else if (outgoing == null) {
+            this.incoming = incoming;
+            this.outgoing = getReversedMap(incoming);
+        } else {
+            this.incoming = incoming;
+            this.outgoing = outgoing;
+        }
     }
 
     @Override
     public Graph<V, E> removeNode(V node) {
         if (!containsNode(node)) return this;
 
-        var evGraph = new MutableMap<>(this.evGraph);
-        var veGraph = new MutableMap<>(this.veGraph);
-
-        removeNodeHelper(evGraph, veGraph, node, false);
-        removeNodeHelper(evGraph, veGraph, node, true);
-
-        return new GraphImpl<>(evGraph.toImmutable().removeKey(node), veGraph.toImmutable().removeKey(node));
+        return new GraphImpl<>(removeNodeHelper(outgoing, incoming, node).removeKey(node), removeNodeHelper(incoming, outgoing, node).removeKey(node));
     }
 
-    private void removeNodeHelper(
-            MutableMap<V, Pair<Map<E, Set<V>>, Map<E, Set<V>>>> evGraph,
-            MutableMap<V, Pair<Map<V, Set<E>>, Map<V, Set<E>>>> veGraph,
-            V node,
-            boolean isReversed
+    private static <V, E> Map<V, Pair<Map<V, Set<E>>, Map<E, Set<V>>>> removeNodeHelper(
+            Map<V, Pair<Map<V, Set<E>>, Map<E, Set<V>>>> map,
+            Map<V, Pair<Map<V, Set<E>>, Map<E, Set<V>>>> reference,
+            V node
     ) {
-        var nodePair = veGraph.get(node);
-        for (Entry<V, Set<E>> other : getOVE(nodePair, isReversed)) {
-            var otherPairEV = evGraph.get(other.getKey());
-            var otherPairVE = veGraph.get(other.getKey());
+        for (var entry : reference.get(node).a()) {
+            var other = map.get(entry.getKey());
+            var ve = other.a(); var ev = other.b();
 
-            var edgeMap = getIEV(otherPairEV, isReversed);
-            for (E edge : getOVE(nodePair, isReversed).get(other.getKey())) {
-                edgeMap = edgeMap.put(edge, edgeMap.get(edge).remove(node));
+            ve = ve.removeKey(node);
+
+            for (E val : entry.getValue()) {
+                ev = ev.put(val, ev.get(val).remove(node));
+                if (ev.get(val).isEmpty()) {
+                    ev = ev.removeKey(val);
+                }
             }
 
-            evGraph.put(other.getKey(), makePair(
-                    edgeMap, getOEV(otherPairEV, isReversed), isReversed
-            ));
-
-            veGraph.put(other.getKey(), makePair(
-                    getIVE(otherPairVE, isReversed).removeKey(node), getOVE(otherPairVE, isReversed), isReversed
-            ));
+            map = map.put(entry.getKey(), Pair.of(ve, ev));
         }
-    }
 
-    private static <V, E> Pair<Map<E, Set<V>>, Map<E, Set<V>>> makePair(Map<E, Set<V>> a, Map<E, Set<V>> b, boolean isReversed) {
-        return isReversed ? Pair.of(b, a) : Pair.of(a, b);
-    }
-
-    private static <V, E> Map<E, Set<V>> getIEV(
-            Pair<Map<E, Set<V>>, Map<E, Set<V>>> pair,
-            boolean isReversed
-    ) {
-        return isReversed ? pair.b() : pair.a();
-    }
-
-    private static <V, E> Map<E, Set<V>> getOEV(
-            Pair<Map<E, Set<V>>, Map<E, Set<V>>> pair,
-            boolean isReversed
-    ) {
-        return isReversed ? pair.a() : pair.b();
-    }
-
-    private static <V, E> Map<V, Set<E>> getIVE(
-            Pair<Map<V, Set<E>>, Map<V, Set<E>>> pair,
-            boolean isReversed
-    ) {
-        return isReversed ? pair.b() : pair.a();
-    }
-
-    private static <V, E> Map<V, Set<E>> getOVE(
-            Pair<Map<V, Set<E>>, Map<V, Set<E>>> pair,
-            boolean isReversed
-    ) {
-        return isReversed ? pair.a() : pair.b();
+        return map;
     }
 
     @Override
     public boolean containsNode(V node) {
-        return node != null && evGraph.containsKey(node);
+        return node != null && (outgoing.containsKey(node) || incoming.containsKey(node));
     }
 
     @Override
     public Set<V> getNodes() {
-        return evGraph.toKeys().asSet();
+        return outgoing.toKeys().asSet().addAll(incoming.toKeys());
     }
 
     @Override
     public GraphImpl<V, E> putEdge(V src, V dst, E val) {
         if (src == null || dst == null || val == null) return this;
+        if (outgoing.containsKey(src) && outgoing.get(src).a().containsKey(dst) && outgoing.get(src).a().get(dst).contains(val))
+            return this;
 
-        var EVGraph = evGraph;
-        var VEGraph = veGraph;
+        var newIncoming = incoming;
+        var newOutgoing = outgoing;
 
-        if (!EVGraph.containsKey(src)) {
-            EVGraph = EVGraph.put(src, Pair.of(Map.of(), Map.of()));
-            VEGraph = VEGraph.put(src, Pair.of(Map.of(), Map.of()));
-        }
+        var srcPairOutgoing = newOutgoing.getOrDefault(src, Pair.of(Map.of(), Map.of()));
+        var dstPairIncoming = newIncoming.getOrDefault(dst, Pair.of(Map.of(), Map.of()));
 
-        if (!EVGraph.containsKey(dst)) {
-            EVGraph = EVGraph.put(dst, Pair.of(Map.of(), Map.of()));
-            VEGraph = VEGraph.put(dst, Pair.of(Map.of(), Map.of()));
-        }
+        newOutgoing = newOutgoing.put(src, Pair.of(putEdgeHelperVE(srcPairOutgoing.a(), dst, val), putEdgeHelperEV(srcPairOutgoing.b(), dst, val)));
+        newIncoming = newIncoming.put(dst, Pair.of(putEdgeHelperVE(dstPairIncoming.a(), src, val), putEdgeHelperEV(dstPairIncoming.b(), src, val)));
 
-        if (VEGraph.get(src).b().get(dst) != null && VEGraph.get(src).b().get(dst).contains(val)) return this;
-        var srcPairEV = EVGraph.get(src);
-        var srcPairVE = VEGraph.get(src);
-
-        EVGraph = EVGraph.put(src, Pair.of(srcPairEV.a(), putEdgeHelperEV(srcPairEV.b(), dst, val)));
-        VEGraph = VEGraph.put(src, Pair.of(srcPairVE.a(), putEdgeHelperVE(srcPairVE.b(), dst, val)));
-
-        var dstPairEV = EVGraph.get(dst);
-        var dstPairVE = VEGraph.get(dst);
-
-        EVGraph = EVGraph.put(dst, Pair.of(putEdgeHelperEV(dstPairEV.a(), src, val), dstPairEV.b()));
-        VEGraph = VEGraph.put(dst, Pair.of(putEdgeHelperVE(dstPairVE.a(), src, val), dstPairVE.b()));
-
-        return new GraphImpl<>(EVGraph, VEGraph);
+        return new GraphImpl<>(newOutgoing, newIncoming);
     }
 
     private static <V, E> Map<V, Set<E>> putEdgeHelperVE(Map<V, Set<E>> map, V node, E val) {
@@ -188,171 +168,129 @@ public class GraphImpl<V, E> extends CollectionImpl<Triple<V, E, V>> implements 
     @Override
     public Set<E> getEdges(V src, V dst) {
         if (!containsNode(src) || !containsNode(dst)) return null;
-        return veGraph.get(src).b().containsKey(dst) ? veGraph.get(src).b().get(dst) : Set.of();
+        return outgoing.get(src).a().containsKey(dst) ? outgoing.get(src).a().get(dst) : Set.of();
     }
 
     @Override
     public boolean containsEdge(V src, V dst, E val) {
         if (src == null || dst == null || val == null) return false;
 
-        return evGraph.containsKey(src) && evGraph.get(src).b().containsKey(val) &&
-                evGraph.get(src).b().get(val).contains(dst);
+        return outgoing.containsKey(src) && outgoing.get(src).b().containsKey(val) &&
+                outgoing.get(src).b().get(val).contains(dst);
     }
 
     @Override
     public Graph<V, E> removeEdge(V src, V dst, E val) {
         if (!containsEdge(src, dst, val)) return this;
 
-        var EVGraph = evGraph;
-        var VEGraph = veGraph;
-        var srcPairEV = EVGraph.get(src);
-        var srcPairVE = VEGraph.get(src);
-
-        EVGraph = EVGraph.put(src, Pair.of(srcPairEV.a(), removeEdgeHelperEV(srcPairEV.b(), dst, val)));
-        VEGraph = VEGraph.put(src, Pair.of(srcPairVE.a(), removeEdgeHelperVE(srcPairVE.b(), dst, val)));
-
-        var dstPairEV = EVGraph.get(dst);
-        var dstPairVE = VEGraph.get(dst);
-
-        EVGraph = EVGraph.put(dst, Pair.of(removeEdgeHelperEV(dstPairEV.a(), src, val), dstPairEV.b()));
-        VEGraph = VEGraph.put(dst, Pair.of(removeEdgeHelperVE(dstPairVE.a(), src, val), dstPairVE.b()));
-
-        if (quadEmpty(EVGraph.get(src), VEGraph.get(src))) {
-            EVGraph = EVGraph.removeKey(src);
-            VEGraph = VEGraph.removeKey(src);
-        }
-
-        if (EVGraph.containsKey(dst) && quadEmpty(EVGraph.get(dst), VEGraph.get(dst))) {
-            EVGraph = EVGraph.removeKey(dst);
-            VEGraph = VEGraph.removeKey(dst);
-        }
-
-        return new GraphImpl<>(EVGraph, VEGraph);
+        return new GraphImpl<>(removeEdgeHelper(outgoing, src, dst, val), removeEdgeHelper(incoming, dst, src, val));
     }
 
-    private static <V, E> boolean quadEmpty(Pair<Map<E, Set<V>>, Map<E, Set<V>>> evPair, Pair<Map<V, Set<E>>, Map<V, Set<E>>> vePair) {
-        return evPair.a().isEmpty() && evPair.b().isEmpty() && vePair.a().isEmpty() && vePair.b().isEmpty();
-    }
+    private static <V, E> Map<V, Pair<Map<V, Set<E>>, Map<E, Set<V>>>> removeEdgeHelper(Map<V, Pair<Map<V, Set<E>>, Map<E, Set<V>>>> graph, V src, V dst, E val) {
+        var pair = graph.get(src);
 
-    private static <V, E> Map<V, Set<E>> removeEdgeHelperVE(Map<V, Set<E>> map, V node, E val) {
-        if (map.get(node).size() == 1) {
-            return map.removeKey(node);
-        } else {
-            return map.put(node, map.get(node).remove(val));
+        var ve = pair.a();
+        ve = ve.put(dst, ve.get(dst).remove(val));
+        if (ve.get(dst).isEmpty()) {
+            ve = ve.removeKey(dst);
         }
-    }
 
-    private static <V, E> Map<E, Set<V>> removeEdgeHelperEV(Map<E, Set<V>> map, V node, E val) {
-        if (map.get(val).size() == 1) {
-            return map.removeKey(val);
-        } else {
-            return map.put(val, map.get(val).remove(node));
+        if (ve.isEmpty()) {
+            return graph.removeKey(src);
         }
+
+        var ev = pair.b();
+        ev = ev.put(val, ev.get(val).remove(dst));
+        if (ev.get(val).isEmpty()) {
+            ev = ev.removeKey(val);
+        }
+
+        pair = Pair.of(ve, ev);
+        return graph.put(src, pair);
     }
 
     @Override
     public Graph<V, E> removeEdges(V src, V dst) {
-        if (src == null || dst == null || !evGraph.containsKey(src) || !veGraph.get(src).b().contains(dst)) return this;
+        if (src == null || dst == null || !outgoing.containsKey(src) || !outgoing.get(src).a().contains(dst)) return this;
 
-        var EVGraph = evGraph;
-        var VEGraph = veGraph;
-        var srcPairEV = EVGraph.get(src);
-        var srcPairVE = VEGraph.get(src);
-        var dstPairEV = EVGraph.get(dst);
-        var dstPairVE = VEGraph.get(dst);
-        var srcEdgeMap = srcPairEV.b();
-        var dstEdgeMap = dstPairEV.a();
+        return new GraphImpl<>(removeEdgesHelper(outgoing, src, dst), removeEdgesHelper(incoming, dst, src));
+    }
 
-        for (E val : srcPairVE.b().get(dst)) {
-            srcEdgeMap = removeEdgeHelperEV(srcEdgeMap, dst, val);
-            dstEdgeMap = removeEdgeHelperEV(dstEdgeMap, src, val);
+    private static <V, E> Map<V, Pair<Map<V, Set<E>>, Map<E, Set<V>>>> removeEdgesHelper(Map<V, Pair<Map<V, Set<E>>, Map<E, Set<V>>>> graph, V src, V dst) {
+        var pair = graph.get(src);
+
+        var ve = pair.a();
+        ve = ve.removeKey(dst);
+
+        if (ve.isEmpty()) {
+            return graph.removeKey(src);
         }
 
-        EVGraph = EVGraph.put(src, Pair.of(srcPairEV.a(), srcEdgeMap));
-        VEGraph = VEGraph.put(src, Pair.of(srcPairVE.a(), srcPairVE.b().removeKey(dst)));
-
-        dstPairEV = EVGraph.get(dst);
-        dstPairVE = VEGraph.get(dst);
-
-        EVGraph = EVGraph.put(dst, Pair.of(dstEdgeMap, dstPairEV.b()));
-        VEGraph = VEGraph.put(dst, Pair.of(dstPairVE.a().removeKey(src), dstPairVE.b()));
-
-        if (quadEmpty(EVGraph.get(src), VEGraph.get(src))) {
-            EVGraph = EVGraph.removeKey(src);
-            VEGraph = VEGraph.removeKey(src);
+        var ev = pair.b();
+        for (var entry : ev) {
+            ev = ev.put(entry.getKey(), entry.getValue().remove(dst));
+            if (ev.get(entry.getKey()).isEmpty()) {
+                ev = ev.removeKey(entry.getKey());
+            }
         }
 
-        if (EVGraph.containsKey(dst) && quadEmpty(EVGraph.get(dst), VEGraph.get(dst))) {
-            EVGraph = EVGraph.removeKey(dst);
-            VEGraph = VEGraph.removeKey(dst);
-        }
-
-        return new GraphImpl<>(EVGraph, VEGraph);
+        pair = Pair.of(ve, ev);
+        return graph.put(src, pair);
     }
 
     @Override
     public Map<E, Set<V>> getIncoming(V node) {
-        return node != null && evGraph.containsKey(node) ? evGraph.get(node).a() : null;
+        return node != null && incoming.containsKey(node) ? incoming.get(node).b() : null;
     }
 
     @Override
     public Set<V> getIncoming(V node, E val) {
-        return node != null && val != null && evGraph.containsKey(node) ? evGraph.get(node).a().get(val) : null;
+        return node != null && val != null && incoming.containsKey(node) ? incoming.get(node).b().get(val) : null;
     }
 
     @Override
     public Map<E, Set<V>> getOutgoing(V node) {
-        return node != null && evGraph.containsKey(node) ? evGraph.get(node).b() : null;
+        return node != null && outgoing.containsKey(node) ? outgoing.get(node).b() : null;
     }
 
     @Override
     public Set<V> getOutgoing(V node, E val) {
-        return node != null && val != null && evGraph.containsKey(node) ? evGraph.get(node).b().get(val) : null;
+        return node != null && val != null && outgoing.containsKey(node) ? outgoing.get(node).b().get(val) : null;
     }
 
     @Override
     public Set<E> getIncomingEdges(V node) {
-        return node != null && evGraph.containsKey(node) ? evGraph.get(node).a().toKeys().asSet() : null;
+        return node != null && incoming.containsKey(node) ? incoming.get(node).b().toKeys().asSet() : null;
     }
 
     @Override
     public Set<E> getOutgoingEdges(V node) {
-        return node != null && evGraph.containsKey(node) ? evGraph.get(node).b().toKeys().asSet() : null;
+        return node != null && outgoing.containsKey(node) ? outgoing.get(node).b().toKeys().asSet() : null;
     }
 
     @Override
     public Set<V> getIncomingNodes(V node) {
-        return node != null && veGraph.containsKey(node) ? veGraph.get(node).a().toKeys().asSet() : null;
+        return node != null && incoming.containsKey(node) ? incoming.get(node).a().toKeys().asSet() : null;
     }
 
     @Override
     public Set<V> getOutgoingNodes(V node) {
-        return node != null && veGraph.containsKey(node) ? veGraph.get(node).b().toKeys().asSet() : null;
+        return node != null && outgoing.containsKey(node) ? outgoing.get(node).a().toKeys().asSet() : null;
     }
 
     @Override
     public Graph<V, E> inverted() {
-        var EVGraph = evGraph;
-        var VEGraph = veGraph;
-
-        for (V node : getNodes()) {
-            var pairEV = EVGraph.get(node);
-            var pairVE = VEGraph.get(node);
-            EVGraph = EVGraph.put(node, Pair.of(pairEV.b(), pairEV.a()));
-            VEGraph = VEGraph.put(node, Pair.of(pairVE.b(), pairVE.a()));
-        }
-
-        return new GraphImpl<>(EVGraph, VEGraph);
+        return new GraphImpl<>(incoming, outgoing);
     }
 
     @Override
     public int size() {
-        return evGraph.size();
+        return outgoing.size();
     }
 
     @Override
     public int hashCode() {
-        return this.evGraph.hashCode() + this.veGraph.hashCode();
+        return outgoing.hashCode() + incoming.hashCode();
     }
 
     @Override
@@ -366,15 +304,19 @@ public class GraphImpl<V, E> extends CollectionImpl<Triple<V, E, V>> implements 
         @SuppressWarnings("unchecked")
         GraphImpl<V, E> other = (GraphImpl<V, E>) obj;
 
-        if (!this.evGraph.equals(other.evGraph))
+        if (!this.outgoing.equals(other.outgoing))
             return false;
 
-        if (Age.age(this.evGraph) > Age.age(other.evGraph)) {
-            other.evGraph = this.evGraph;
-            other.veGraph = this.veGraph;
+        if (Age.age(this.outgoing) > Age.age(other.outgoing)) {
+            other.outgoing = this.outgoing;
         } else {
-            this.evGraph = other.evGraph;
-            this.veGraph = other.veGraph;
+            this.outgoing = other.outgoing;
+        }
+
+        if (Age.age(this.incoming) > Age.age(other.incoming)) {
+            other.incoming = this.incoming;
+        } else {
+            this.incoming = other.incoming;
         }
 
         return true;
@@ -384,18 +326,14 @@ public class GraphImpl<V, E> extends CollectionImpl<Triple<V, E, V>> implements 
     public int numEdges() {
         int count = 0;
 
-        for (var outer : evGraph) {
+        for (var outer : outgoing) {
             var map = outer.getValue().b();
-            System.out.println(outer.getKey());
-            System.out.println("v");
 
             for (var inner : map) {
-                System.out.println(inner.getKey());
                 if (inner.getValue() != null) {
                     count += inner.getValue().size();
                 }
             }
-            System.out.println("^");
         }
 
         return count;
@@ -404,23 +342,23 @@ public class GraphImpl<V, E> extends CollectionImpl<Triple<V, E, V>> implements 
     @Override
     protected Stream<Triple<V, E, V>> baseStream() {
         MutableList<Triple<V, E, V>> list = new MutableList<>(List.of());
-        evGraph.forEach(s -> s.getValue().b().forEach(e -> e.getValue().forEach(t -> list.add(Triple.of(s.getKey(), e.getKey(), t)))));
+        outgoing.forEach(s -> s.getValue().b().forEach(e -> e.getValue().forEach(t -> list.add(Triple.of(s.getKey(), e.getKey(), t)))));
         return list.stream();
     }
 
     @Override
     public Spliterator<Triple<V, E, V>> spliterator() {
-        return evGraph.flatMap(s -> s.getValue().b().flatMap(e -> e.getValue().map(t -> Triple.of(s.getKey(), e.getKey(), t)))).spliterator();
+        return outgoing.flatMap(s -> s.getValue().b().flatMap(e -> e.getValue().map(t -> Triple.of(s.getKey(), e.getKey(), t)))).spliterator();
     }
 
     @Override
     public Iterator<Triple<V, E, V>> iterator() {
-        return evGraph.flatMap(s -> s.getValue().b().flatMap(e -> e.getValue().map(t -> Triple.of(s.getKey(), e.getKey(), t)))).iterator();
+        return outgoing.flatMap(s -> s.getValue().b().flatMap(e -> e.getValue().map(t -> Triple.of(s.getKey(), e.getKey(), t)))).iterator();
     }
 
     @Override
     public boolean isEmpty() {
-        return evGraph.isEmpty();
+        return outgoing.isEmpty();
     }
 
     @Override
@@ -436,7 +374,7 @@ public class GraphImpl<V, E> extends CollectionImpl<Triple<V, E, V>> implements 
         List<R> list = List.of();
         Triple<V, E, V> last1 = null, last2 = null;
 
-        for (var s : evGraph) {
+        for (var s : outgoing) {
             for (var e : s.getValue().b()) {
                 for (var t : e.getValue()) {
                     var curr = Triple.of(s.getKey(), e.getKey(), t);
@@ -471,7 +409,7 @@ public class GraphImpl<V, E> extends CollectionImpl<Triple<V, E, V>> implements 
         List<R> list = List.of();
         int index = 0;
 
-        for (var s : evGraph) {
+        for (var s : outgoing) {
             for (var e : s.getValue().b()) {
                 for (var t : e.getValue()) {
                     var curr = Triple.of(s.getKey(), e.getKey(), t);
@@ -487,9 +425,8 @@ public class GraphImpl<V, E> extends CollectionImpl<Triple<V, E, V>> implements 
     @Override
     @SuppressWarnings("unchecked")
     public <R extends ContainingCollection<Triple<V, E, V>>> StreamCollection<R[]> compare(R other) {
-        R a = (R) List.of(this.toList());
-        R b = (R) List.of(other.toList());
-        return a.compare(b);
+        var graph = (GraphImpl<V, E>) other;
+        return (StreamCollection<R[]>) outgoing.compare(graph.outgoing).map(mp -> (R[]) new GraphImpl[]{new GraphImpl<>(mp[0]), new GraphImpl<>(mp[1])});
     }
 
     @Override
@@ -497,7 +434,7 @@ public class GraphImpl<V, E> extends CollectionImpl<Triple<V, E, V>> implements 
         if (index < 0 || index >= size())
             throw new IndexOutOfBoundsException();
 
-        for (var s : evGraph) {
+        for (var s : outgoing) {
             for (var e : s.getValue().b()) {
                 for (var t : e.getValue()) {
                     var curr = Triple.of(s.getKey(), e.getKey(), t);

@@ -21,17 +21,14 @@
 package org.modelingvalue.collections.test;
 
 import org.junit.jupiter.api.Test;
-import org.modelingvalue.collections.Graph;
-import org.modelingvalue.collections.List;
-import org.modelingvalue.collections.Map;
-import org.modelingvalue.collections.Set;
+import org.modelingvalue.collections.*;
+import org.modelingvalue.collections.impl.GraphImpl;
 import org.modelingvalue.collections.mutable.MutableSet;
 import org.modelingvalue.collections.util.TriConsumer;
 import org.modelingvalue.collections.util.TriFunction;
 import org.modelingvalue.collections.util.Triple;
 
 import java.util.Iterator;
-import java.util.ListIterator;
 import java.util.Spliterator;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -161,6 +158,14 @@ public class GraphTest {
         assertEquals(expected, actual);
         assertEquals(expected.getNodes(), actual.getNodes());
         assertEquals(Set.of("a", "b", "c"), actual.getNodes());
+    }
+
+    @Test
+    public void getNodes4() {
+        Graph<String, Integer> graph = Graph.of(Triple.of("a", 0, "b"));
+        Set<String> expected = Set.of("a", "b");
+
+        assertEquals(expected, graph.getNodes());
     }
 
     @Test
@@ -956,16 +961,14 @@ public class GraphTest {
         Graph<String, Integer> graph2 = Graph.of(Triple.of("a", 0, "b"), Triple.of("b", 0, "b"));
         Graph<String, Integer> graph3 = Graph.of(Triple.of("a", 0, "b"), Triple.of("b", 0, "b"), Triple.of("b", 0, "b"));
 
-        System.out.println(graph2);
-//        assertEquals(0, graph0.numEdges());
+        assertEquals(0, graph0.numEdges());
 
         graph = graph.putEdge("a", "b", 0);
 
-//        assertEquals(1, graph1.numEdges());
-//        assertEquals(1, graph.numEdges());
+        assertEquals(1, graph1.numEdges());
+        assertEquals(1, graph.numEdges());
 
         graph = graph.putEdge("b", "b", 0);
-        System.out.println(graph);
 
         assertEquals(2, graph2.numEdges());
         assertEquals(2, graph.numEdges());
@@ -1543,5 +1546,34 @@ public class GraphTest {
             assertEquals(value, it2.previous());
             assertEquals(value, it3.previous());
         }
+    }
+
+    @Test
+    public void compare1() {
+        Graph<String, Integer> graph = Graph.of();
+        Set<Triple<String, Integer, String>> set = Set.of();
+
+        for (char src = 'a'; src <= 'j'; src++) {
+            for (char dst = 'a'; dst <= 'j'; dst++) {
+                for (int val = 1; val <= 10; val++) {
+                    graph = graph.putEdge(src + "", dst + "", val);
+                    if (src == 'a') {
+                        set = set.add(Triple.of(src + "", val, dst + ""));
+                    }
+                }
+            }
+        }
+
+        var mutated = graph.removeEdge("a", "b", 1);
+
+        Set<Triple<String, Integer, String>> expectedBefore = set;
+        Set<Triple<String, Integer, String>> expectedAfter = set.remove(Triple.of("a", 1, "b"));
+
+        graph.compare(mutated).forEach(e -> {
+            var before = (GraphImpl<String, Integer>)e[0];
+            var after = (GraphImpl<String, Integer>)e[1];
+            assertEquals(expectedBefore, before.asSet());
+            assertEquals(expectedAfter, after.asSet());
+        });
     }
 }
