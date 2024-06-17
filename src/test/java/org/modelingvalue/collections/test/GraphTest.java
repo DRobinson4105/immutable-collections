@@ -1493,7 +1493,7 @@ public class GraphTest {
     public void clear() {
         Graph<String, Integer> graph = Graph.of(Triple.of("a", 0, "a"), Triple.of("a", 0, "b"));
 
-        assertEquals(Graph.of(), (Graph<String, Integer>) graph.clear());
+        assertEquals(Graph.of(), graph.clear());
     }
 
     @Test
@@ -1570,8 +1570,8 @@ public class GraphTest {
         Set<Triple<String, Integer, String>> expectedAfter = set.remove(Triple.of("a", 1, "b"));
 
         graph.compare(mutated).forEach(e -> {
-            var before = (GraphImpl<String, Integer>)e[0];
-            var after = (GraphImpl<String, Integer>)e[1];
+            var before = e[0];
+            var after = e[1];
             assertEquals(expectedBefore, before.asSet());
             assertEquals(expectedAfter, after.asSet());
         });
