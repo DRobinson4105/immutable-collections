@@ -22,15 +22,17 @@ package org.modelingvalue.collections.test;
 
 import org.junit.jupiter.api.Test;
 import org.modelingvalue.collections.*;
-import org.modelingvalue.collections.impl.GraphImpl;
 import org.modelingvalue.collections.mutable.MutableSet;
 import org.modelingvalue.collections.util.TriConsumer;
 import org.modelingvalue.collections.util.TriFunction;
 import org.modelingvalue.collections.util.Triple;
 
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Spliterator;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.BiFunction;
+import java.util.function.Predicate;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -1575,5 +1577,38 @@ public class GraphTest {
             assertEquals(expectedBefore, before.asSet());
             assertEquals(expectedAfter, after.asSet());
         });
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void merge1() {
+        Graph<String, Integer> graph = Graph.of(Triple.of("a", 0, "b"), Triple.of("c", 1, "d"));
+//        List<Graph<String, Integer>> others = List.of(graph.putEdge("a", "c", 0), graph.removeEdge("c", "d", 1));
+        java.util.List<Graph<String, Integer>> others = new ArrayList<>();
+        others.add(graph.putEdge("a", "c", 0));
+        others.add(graph.removeEdge("c", "d", 1));
+        System.out.println(graph.merge(others.toArray(Graph[]::new)));
+    }
+
+    @Test
+    public void cycle1() {
+        Graph<String, Integer> graph0 = Graph.of();
+        Graph<String, Integer> graph1 = Graph.of(Triple.of("a", 0, "b"));
+        Graph<String, Integer> graph2 = Graph.of(Triple.of("a", 0, "b"), Triple.of("b", 1, "a"));
+        Graph<String, Integer> graph3 = Graph.of(Triple.of("a", 0, "b"), Triple.of("b", 0, "a"));
+
+        Predicate<String> passNode = n -> true;
+        Predicate<Triple<String, Integer, String>> passEdge = edge -> true;
+        Predicate<String> rejectNode = n -> false;
+        Predicate<Triple<String, Integer, String>> rejectEdge = edge -> false;
+
+        assertFalse(graph0.hasCycles(passNode, passEdge));
+        assertFalse(graph1.hasCycles(passNode, passEdge));
+        assertTrue(graph2.hasCycles(passNode, passEdge));
+        assertTrue(graph3.hasCycles(passNode, passEdge));
+
+        assertFalse(graph2.hasCycles(passNode, rejectEdge));
+        assertFalse(graph2.hasCycles(rejectNode, passEdge));
+        assertFalse(graph2.hasCycles(rejectNode, rejectEdge));
     }
 }

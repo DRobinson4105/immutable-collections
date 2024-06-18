@@ -21,7 +21,6 @@
 package org.modelingvalue.collections;
 
 import org.modelingvalue.collections.impl.GraphImpl;
-import org.modelingvalue.collections.impl.ListImpl;
 import org.modelingvalue.collections.util.Mergeable;
 import org.modelingvalue.collections.util.Triple;
 
@@ -67,11 +66,11 @@ public interface Graph<V, E> extends ContainingCollection<Triple<V, E, V>>, Merg
 
     Set<V> getOutgoingNodes(V node);
 
-    default boolean hasCycles(Predicate<V> skipNode, Predicate<Triple<V, E, V>> skipEdge) {
+    default boolean hasCycles(Predicate<V> nodePredicate, Predicate<Triple<V, E, V>> edgePredicate) {
         var safe = new java.util.HashSet<V>();
 
         nextNode: for (V node : getNodes()) {
-            if (skipNode.test(node)) continue;
+            if (!nodePredicate.test(node)) continue;
             var active = new java.util.HashSet<V>();
             var queue = new java.util.LinkedList<V>();
             queue.add(node);
@@ -83,7 +82,7 @@ public interface Graph<V, E> extends ContainingCollection<Triple<V, E, V>>, Merg
 
                 for (Entry<E, Set<V>> entry : getOutgoing(curr)) {
                     for (V next : entry.getValue()) {
-                        if (skipNode.test(next) || skipEdge.test(Triple.of(curr, entry.getKey(), next))) {
+                        if (!nodePredicate.test(next) || !edgePredicate.test(Triple.of(curr, entry.getKey(), next))) {
                             continue;
                         }
 
@@ -105,4 +104,22 @@ public interface Graph<V, E> extends ContainingCollection<Triple<V, E, V>>, Merg
     Graph<V, E> inverted();
 
     int numEdges();
+
+    Graph<V, E> remove(Object e);
+
+    Graph<V, E> removeAll(Collection<?> e);
+
+    Graph<V, E> add(Triple<V, E, V> e);
+
+    Graph<V, E> addAll(Collection<? extends Triple<V, E, V>> e);
+
+    Graph<V, E> addUnique(Triple<V, E, V> e);
+
+    Graph<V, E> addAllUnique(Collection<? extends Triple<V, E, V>> e);
+
+    Graph<V, E> replace(Object pre, Triple<V, E, V> post);
+
+    Graph<V, E> replaceFirst(Object pre, Triple<V, E, V> post);
+
+    Graph<V, E> clear();
 }

@@ -36,8 +36,7 @@ import java.util.stream.Stream;
 public class GraphImpl<V, E> extends CollectionImpl<Triple<V, E, V>> implements Graph<V, E> {
 
     @Serial
-    private static final long serialVersionUID = -9154911675408612745L;
-
+    private static final long serialVersionUID = -595672281912345963L;
     protected Map<V, Pair<Map<V, Set<E>>, Map<E, Set<V>>>> outgoing;
     protected Map<V, Pair<Map<V, Set<E>>, Map<E, Set<V>>>> incoming;
 
@@ -173,10 +172,8 @@ public class GraphImpl<V, E> extends CollectionImpl<Triple<V, E, V>> implements 
 
     @Override
     public boolean containsEdge(V src, V dst, E val) {
-        if (src == null || dst == null || val == null) return false;
-
-        return outgoing.containsKey(src) && outgoing.get(src).b().containsKey(val) &&
-                outgoing.get(src).b().get(val).contains(dst);
+        return src != null && dst != null && val != null && outgoing.containsKey(src) &&
+                outgoing.get(src).b().containsKey(val) && outgoing.get(src).b().get(val).contains(dst);
     }
 
     @Override
@@ -240,42 +237,50 @@ public class GraphImpl<V, E> extends CollectionImpl<Triple<V, E, V>> implements 
 
     @Override
     public Map<E, Set<V>> getIncoming(V node) {
-        return node != null && incoming.containsKey(node) ? incoming.get(node).b() : null;
+        if (!containsNode(node)) return null;
+        return incoming.containsKey(node) ? incoming.get(node).b() : Map.of();
     }
 
     @Override
     public Set<V> getIncoming(V node, E val) {
-        return node != null && val != null && incoming.containsKey(node) ? incoming.get(node).b().get(val) : null;
+        if (val == null || !containsNode(node)) return null;
+        return incoming.containsKey(node) ? incoming.get(node).b().getOrDefault(val, Set.of()) : Set.of();
     }
 
     @Override
     public Map<E, Set<V>> getOutgoing(V node) {
-        return node != null && outgoing.containsKey(node) ? outgoing.get(node).b() : null;
+        if (!containsNode(node)) return null;
+        return outgoing.containsKey(node) ? outgoing.get(node).b() : Map.of();
     }
 
     @Override
     public Set<V> getOutgoing(V node, E val) {
-        return node != null && val != null && outgoing.containsKey(node) ? outgoing.get(node).b().get(val) : null;
+        if (val == null || !containsNode(node)) return null;
+        return outgoing.containsKey(node) ? outgoing.get(node).b().getOrDefault(val, Set.of()) : Set.of();
     }
 
     @Override
     public Set<E> getIncomingEdges(V node) {
-        return node != null && incoming.containsKey(node) ? incoming.get(node).b().toKeys().asSet() : null;
+        if (!containsNode(node)) return null;
+        return incoming.containsKey(node) ? incoming.get(node).b().toKeys().asSet() : Set.of();
     }
 
     @Override
     public Set<E> getOutgoingEdges(V node) {
-        return node != null && outgoing.containsKey(node) ? outgoing.get(node).b().toKeys().asSet() : null;
+        if (!containsNode(node)) return null;
+        return outgoing.containsKey(node) ? outgoing.get(node).b().toKeys().asSet() : Set.of();
     }
 
     @Override
     public Set<V> getIncomingNodes(V node) {
-        return node != null && incoming.containsKey(node) ? incoming.get(node).a().toKeys().asSet() : null;
+        if (!containsNode(node)) return null;
+        return incoming.containsKey(node) ? incoming.get(node).a().toKeys().asSet() : Set.of();
     }
 
     @Override
     public Set<V> getOutgoingNodes(V node) {
-        return node != null && outgoing.containsKey(node) ? outgoing.get(node).a().toKeys().asSet() : null;
+        if (!containsNode(node)) return null;
+        return outgoing.containsKey(node) ? outgoing.get(node).a().toKeys().asSet() : Set.of();
     }
 
     @Override
@@ -324,19 +329,7 @@ public class GraphImpl<V, E> extends CollectionImpl<Triple<V, E, V>> implements 
 
     @Override
     public int numEdges() {
-        int count = 0;
-
-        for (var outer : outgoing) {
-            var map = outer.getValue().b();
-
-            for (var inner : map) {
-                if (inner.getValue() != null) {
-                    count += inner.getValue().size();
-                }
-            }
-        }
-
-        return count;
+        return this.outgoing.flatMap(a -> a.getValue().b().toValues()).mapToInt(Collection::size).sum();
     }
 
     @Override
@@ -404,8 +397,6 @@ public class GraphImpl<V, E> extends CollectionImpl<Triple<V, E, V>> implements 
 
     @Override
     public <R> Collection<R> indexed(BiFunction<Triple<V, E, V>, Integer, R> function) {
-        if (function == null) return null;
-
         List<R> list = List.of();
         int index = 0;
 
@@ -425,22 +416,23 @@ public class GraphImpl<V, E> extends CollectionImpl<Triple<V, E, V>> implements 
     @Override
     @SuppressWarnings("unchecked")
     public <R extends ContainingCollection<Triple<V, E, V>>> StreamCollection<R[]> compare(R other) {
-        var graph = (GraphImpl<V, E>) other;
-        return (StreamCollection<R[]>) outgoing.compare(graph.outgoing).map(mp -> (R[]) new GraphImpl[]{new GraphImpl<>(mp[0]), new GraphImpl<>(mp[1])});
+        return (StreamCollection<R[]>) outgoing
+                .compare(((GraphImpl<V, E>) other).outgoing)
+                .map(mp -> (R[]) new GraphImpl[]{new GraphImpl<>(mp[0]), new GraphImpl<>(mp[1])});
     }
 
     @Override
     public Triple<V, E, V> get(int index) {
-        if (index < 0 || index >= size())
+        if (index < 0 || index >= size()) {
             throw new IndexOutOfBoundsException();
+        }
 
         for (var s : outgoing) {
             for (var e : s.getValue().b()) {
                 for (var t : e.getValue()) {
                     var curr = Triple.of(s.getKey(), e.getKey(), t);
 
-                    if (index-- == 0)
-                        return curr;
+                    if (index-- == 0) return curr;
                 }
             }
         }
@@ -450,64 +442,67 @@ public class GraphImpl<V, E> extends CollectionImpl<Triple<V, E, V>> implements 
 
     @Override
     @SuppressWarnings({"unchecked", "rawtypes"})
-    public ContainingCollection<Triple<V, E, V>> remove(Object e) {
+    public Graph<V, E> remove(Object e) {
+        if (e == null) return this;
+
         Triple<V, E, V> triple = (Triple) e;
         return removeEdge(triple.a(), triple.c(), triple.b());
     }
 
     @Override
-    public ContainingCollection<Triple<V, E, V>> removeAll(Collection<?> e) {
+    public Graph<V, E> removeAll(Collection<?> e) {
         if (e == null) return this;
 
         Graph<V, E> result = this;
 
         for (Object edge : e) {
-            result = (Graph<V, E>) result.remove(edge);
+            result = result.remove(edge);
         }
 
         return result;
     }
 
     @Override
-    public ContainingCollection<Triple<V, E, V>> add(Triple<V, E, V> e) {
+    public Graph<V, E> add(Triple<V, E, V> e) {
+        if (e == null) return this;
         return putEdge(e.a(), e.c(), e.b());
     }
 
     @Override
-    public ContainingCollection<Triple<V, E, V>> addAll(Collection<? extends Triple<V, E, V>> e) {
+    public Graph<V, E> addAll(Collection<? extends Triple<V, E, V>> e) {
         if (e == null) return this;
 
         Graph<V, E> result = this;
 
         for (Triple<V, E, V> edge : e) {
-            result = result.putEdge(edge.a(), edge.c(), edge.b());
+            result = result.add(edge);
         }
 
         return result;
     }
 
     @Override
-    public ContainingCollection<Triple<V, E, V>> addUnique(Triple<V, E, V> e) {
+    public Graph<V, E> addUnique(Triple<V, E, V> e) {
         return add(e);
     }
 
     @Override
-    public ContainingCollection<Triple<V, E, V>> addAllUnique(Collection<? extends Triple<V, E, V>> e) {
+    public Graph<V, E> addAllUnique(Collection<? extends Triple<V, E, V>> e) {
         return addAll(e);
     }
 
     @Override
-    public ContainingCollection<Triple<V, E, V>> replace(Object pre, Triple<V, E, V> post) {
+    public Graph<V, E> replace(Object pre, Triple<V, E, V> post) {
         return remove(pre).add(post);
     }
 
     @Override
-    public ContainingCollection<Triple<V, E, V>> replaceFirst(Object pre, Triple<V, E, V> post) {
+    public Graph<V, E> replaceFirst(Object pre, Triple<V, E, V> post) {
         return replace(pre, post);
     }
 
     @Override
-    public ContainingCollection<Triple<V, E, V>> clear() {
+    public Graph<V, E> clear() {
         return Graph.of();
     }
 
@@ -551,43 +546,26 @@ public class GraphImpl<V, E> extends CollectionImpl<Triple<V, E, V>> implements 
 
         for (int i = 0; i < size; i++) {
             Triple<V, E, V> curr = s.readObject();
-            putEdge(curr.a(), curr.c(), curr.b());
+            GraphImpl<V, E> next = (GraphImpl<V, E>) add(curr);
+            this.outgoing = next.outgoing;
+            this.incoming = next.incoming;
         }
     }
 
+
+    @SuppressWarnings("unchecked")
+    private static <V, E> Map<V, Pair<Map<V, Set<E>>, Map<E, Set<V>>>> partialMerge(Map<V, Pair<Map<V, Set<E>>, Map<E, Set<V>>>> self, Map<V, Pair<Map<V, Set<E>>, Map<E, Set<V>>>>[] branches, int length){
+        return self.merge((o, s, ss, l) -> Pair.of(s.a().merge(Arrays.stream(ss).map(Pair::a).toArray(Map[]::new)),
+                s.b().merge(Arrays.stream(ss).map(Pair::b).toArray(Map[]::new))), branches, length);
+    }
+
+    @SuppressWarnings("unchecked")
     @Override
     public Graph<V, E> merge(Graph<V, E>[] branches, int length) {
-        int biggest = -1;
-        int size = -1;
-
-        for (int i = 0; i < length; i++) {
-            if (branches[i].size() > size) {
-                size = branches[i].size();
-                biggest = i;
-            }
-        }
-
-        Graph<V, E> result = biggest >= 0 ? branches[biggest] : this;
-
-        for (int i = 0; i < length; i++) {
-            if (i != biggest) {
-                for (Triple<V, E, V> edge : this) {
-                    if (!branches[i].contains(edge)) {
-                        result = (Graph<V, E>) result.remove(edge);
-                    }
-                }
-
-                for (int eb = 0; eb < branches[i].size(); eb++) {
-                    Triple<V, E, V> edge = branches[i].get(eb);
-
-                    if (!contains(edge) && !result.contains(edge)) {
-                        result = (Graph<V, E>) result.add(edge);
-                    }
-                }
-            }
-        }
-
-        return result;
+        return new GraphImpl<>(
+                partialMerge(outgoing, Arrays.stream(branches).map(branch -> ((GraphImpl<V, E>)branch).outgoing).toArray(Map[]::new), length),
+                partialMerge(incoming, Arrays.stream(branches).map(branch -> ((GraphImpl<V, E>)branch).incoming).toArray(Map[]::new), length)
+        );
     }
 
     @Override
@@ -625,9 +603,8 @@ public class GraphImpl<V, E> extends CollectionImpl<Triple<V, E, V>> implements 
 
         @Override
         public Triple<V, E, V> next() {
-            if (!hasNext()) {
+            if (!hasNext())
                 throw new NoSuchElementException();
-            }
 
             return edges.get(idx++);
         }
@@ -639,9 +616,8 @@ public class GraphImpl<V, E> extends CollectionImpl<Triple<V, E, V>> implements 
 
         @Override
         public Triple<V, E, V> previous() {
-            if (!hasPrevious()) {
+            if (!hasPrevious())
                 throw new NoSuchElementException();
-            }
 
             return edges.get(--idx);
         }
