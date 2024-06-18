@@ -1275,7 +1275,7 @@ public class GraphTest {
 
         actual = actual.putEdge("a", "b", 0);
         assertTrue(actual.containsEdge("a", "b", 0));
-        actual = (Graph<String, Integer>) actual.remove(Triple.of("a", 0, "b"));
+        actual = actual.remove(Triple.of("a", 0, "b"));
 
         assertEquals(expected, actual);
         assertFalse(expected.containsEdge("a", "b", 0));
@@ -1287,7 +1287,7 @@ public class GraphTest {
         Graph<String, Integer> expected = Graph.of();
         Graph<String, Integer> actual = Graph.of();
 
-        actual = (Graph<String, Integer>) actual.remove(Triple.of("a", 0, "b"));
+        actual = actual.remove(Triple.of("a", 0, "b"));
 
         assertEquals(expected, actual);
         assertFalse(expected.containsEdge("a", "b", 0));
@@ -1300,7 +1300,7 @@ public class GraphTest {
         Graph<String, Integer> actual = Graph.of();
 
         actual = actual.putEdge("a", "b", 1);
-        actual = (Graph<String, Integer>) actual.remove(Triple.of("a", 0, "b"));
+        actual = actual.remove(Triple.of("a", 0, "b"));
 
         assertEquals(expected, actual);
         assertFalse(expected.containsEdge("a", "b", 0));
@@ -1314,7 +1314,7 @@ public class GraphTest {
         Graph<String, Integer> expected = Graph.of(Triple.of("a", 0, "b"));
         Graph<String, Integer> actual = Graph.of(Triple.of("a", 0, "b"));
 
-        actual = (Graph<String, Integer>) actual.remove(Triple.of(null, 0, "b")).remove(Triple.of("a", null, "b")).remove(Triple.of("a", 0, null));
+        actual = actual.remove(Triple.of(null, 0, "b")).remove(Triple.of("a", null, "b")).remove(Triple.of("a", 0, null));
 
         assertEquals(expected, actual);
     }
@@ -1324,7 +1324,7 @@ public class GraphTest {
         Graph<String, Integer> expected = Graph.of();
         Graph<String, Integer> actual = Graph.of();
 
-        actual = (Graph<String, Integer>) actual.removeAll(Set.of());
+        actual = actual.removeAll(Set.of());
 
         assertEquals(expected, actual);
     }
@@ -1334,7 +1334,7 @@ public class GraphTest {
         Graph<String, Integer> expected = Graph.of(Triple.of("a", 0, "b"));
         Graph<String, Integer> actual = Graph.of(Triple.of("a", 0, "b"), Triple.of("a", 0, "a"));
 
-        actual = (Graph<String, Integer>) actual.removeAll(Set.of(Triple.of("a", 0, "a")));
+        actual = actual.removeAll(Set.of(Triple.of("a", 0, "a")));
 
         assertEquals(expected, actual);
     }
@@ -1344,7 +1344,7 @@ public class GraphTest {
         Graph<String, Integer> expected = Graph.of(Triple.of("a", 0, "b"));
         Graph<String, Integer> actual = Graph.of(Triple.of("a", 0, "b"), Triple.of("a", 0, "a"), Triple.of("a", 1, "b"));
 
-        actual = (Graph<String, Integer>) actual.removeAll(Set.of(Triple.of("a", 0, "a"), Triple.of("a", 1, "b")));
+        actual = actual.removeAll(Set.of(Triple.of("a", 0, "a"), Triple.of("a", 1, "b")));
 
         assertEquals(expected, actual);
     }
@@ -1362,7 +1362,7 @@ public class GraphTest {
         Graph<String, Integer> expected = Graph.of(Triple.of("a", 0, "b"));
         Graph<String, Integer> actual = Graph.of();
 
-        actual = (Graph<String, Integer>) actual.add(Triple.of("a", 0, "b"));
+        actual = actual.add(Triple.of("a", 0, "b"));
 
         assertEquals(expected, actual);
         assertTrue(expected.containsEdge("a", "b", 0));
@@ -1374,7 +1374,7 @@ public class GraphTest {
         Graph<String, Integer> expected = Graph.of();
         Graph<String, Integer> actual = Graph.of();
 
-        actual = (Graph<String, Integer>) actual.add(Triple.of(null, 0, "a")).add(Triple.of("a", null, "a")).add(Triple.of("a", 0, null));
+        actual = actual.add(Triple.of(null, 0, "a")).add(Triple.of("a", null, "a")).add(Triple.of("a", 0, null));
 
         assertEquals(expected, actual);
     }
@@ -1384,7 +1384,7 @@ public class GraphTest {
         Graph<String, Integer> expected = Graph.of();
         Graph<String, Integer> actual = Graph.of();
 
-        actual = (Graph<String, Integer>) actual.addAll(Set.of());
+        actual = actual.addAll(Set.of());
 
         assertEquals(expected, actual);
     }
@@ -1394,7 +1394,7 @@ public class GraphTest {
         Graph<String, Integer> expected = Graph.of(Triple.of("a", 0, "b"), Triple.of("a", 0, "a"));
         Graph<String, Integer> actual = Graph.of(Triple.of("a", 0, "b"));
 
-        actual = (Graph<String, Integer>) actual.addAll(Set.of(Triple.of("a", 0, "a")));
+        actual = actual.addAll(Set.of(Triple.of("a", 0, "a")));
 
         assertEquals(expected, actual);
     }
@@ -1404,7 +1404,7 @@ public class GraphTest {
         Graph<String, Integer> expected = Graph.of(Triple.of("a", 0, "b"), Triple.of("a", 0, "a"), Triple.of("a", 1, "b"));
         Graph<String, Integer> actual = Graph.of(Triple.of("a", 0, "b"));
 
-        actual = (Graph<String, Integer>) actual.addAll(Set.of(Triple.of("a", 0, "a"), Triple.of("a", 1, "b")));
+        actual = actual.addAll(Set.of(Triple.of("a", 0, "a"), Triple.of("a", 1, "b")));
 
         assertEquals(expected, actual);
     }
@@ -1422,7 +1422,7 @@ public class GraphTest {
         Graph<String, Integer> expected = Graph.of(Triple.of("a", 0, "b"));
         Graph<String, Integer> actual = Graph.of();
 
-        actual = (Graph<String, Integer>) actual.addUnique(Triple.of("a", 0, "b"));
+        actual = actual.addUnique(Triple.of("a", 0, "b"));
 
         assertEquals(expected, actual);
         assertTrue(expected.containsEdge("a", "b", 0));
@@ -1434,7 +1434,7 @@ public class GraphTest {
         Graph<String, Integer> expected = Graph.of();
         Graph<String, Integer> actual = Graph.of();
 
-        actual = (Graph<String, Integer>) actual.addUnique(Triple.of(null, 0, "a")).addUnique(Triple.of("a", null, "a")).addUnique(Triple.of("a", 0, null));
+        actual = actual.addUnique(Triple.of(null, 0, "a")).addUnique(Triple.of("a", null, "a")).addUnique(Triple.of("a", 0, null));
 
         assertEquals(expected, actual);
     }
@@ -1444,7 +1444,7 @@ public class GraphTest {
         Graph<String, Integer> expected = Graph.of();
         Graph<String, Integer> actual = Graph.of();
 
-        actual = (Graph<String, Integer>) actual.addAllUnique(Set.of());
+        actual = actual.addAllUnique(Set.of());
 
         assertEquals(expected, actual);
     }
@@ -1454,7 +1454,7 @@ public class GraphTest {
         Graph<String, Integer> expected = Graph.of(Triple.of("a", 0, "b"), Triple.of("a", 0, "a"));
         Graph<String, Integer> actual = Graph.of(Triple.of("a", 0, "b"));
 
-        actual = (Graph<String, Integer>) actual.addAllUnique(Set.of(Triple.of("a", 0, "a")));
+        actual = actual.addAllUnique(Set.of(Triple.of("a", 0, "a")));
 
         assertEquals(expected, actual);
     }
@@ -1464,7 +1464,7 @@ public class GraphTest {
         Graph<String, Integer> expected = Graph.of(Triple.of("a", 0, "b"), Triple.of("a", 0, "a"), Triple.of("a", 1, "b"));
         Graph<String, Integer> actual = Graph.of(Triple.of("a", 0, "b"));
 
-        actual = (Graph<String, Integer>) actual.addAllUnique(Set.of(Triple.of("a", 0, "a"), Triple.of("a", 1, "b")));
+        actual = actual.addAllUnique(Set.of(Triple.of("a", 0, "a"), Triple.of("a", 1, "b")));
 
         assertEquals(expected, actual);
     }
