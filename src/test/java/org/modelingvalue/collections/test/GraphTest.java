@@ -31,7 +31,6 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Spliterator;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.BiFunction;
 import java.util.function.Predicate;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -1235,7 +1234,7 @@ public class GraphTest {
         Graph<String, Integer> graph = Graph.of(Triple.of("a", 1, "a"), Triple.of("a", 2, "a"));
 
         List<Integer> result = graph.indexed((triple, idx) -> idx + triple.b()).asList();
-        assertDoesNotThrow(() -> graph.indexed(null));
+        assertThrows(NullPointerException.class, () -> graph.indexed(null));
 
         int sum = 0;
         for (Integer num : result) sum += num;
