@@ -27,7 +27,6 @@ import org.modelingvalue.collections.util.TriConsumer;
 import org.modelingvalue.collections.util.TriFunction;
 import org.modelingvalue.collections.util.Triple;
 
-import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Spliterator;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -489,22 +488,19 @@ public class GraphTest {
     public void getIncoming2() {
         Graph<String, Integer> expected = Graph.of(Triple.of("b", 0, "a"));
         Graph<String, Integer> actual = Graph.of();
-        Map<Integer, Set<String>> map = Map.of();
-
-        map = map.put(0, Set.of("b"));
 
         actual = actual.putEdge("b", "a", 0);
 
         assertEquals(expected, actual);
         assertEquals(expected.getIncoming("a"), actual.getIncoming("a"));
-        assertEquals(map, actual.getIncoming("a"));
+        assertEquals(Set.of("b"), actual.getIncoming("a").get((Integer) 0));
     }
 
     @Test
     public void getIncoming3() {
         Graph<String, Integer> expected = Graph.of(Triple.of("b", 0, "a"), Triple.of("c", 1, "a"));
         Graph<String, Integer> actual = Graph.of();
-        Map<Integer, Set<String>> map = Map.of();
+        DefaultMap<Integer, Set<String>> map = DefaultMap.of(k -> Set.of());
 
         map = map.put(0, Set.of("b")).put(1, Set.of("c"));
 
@@ -512,22 +508,21 @@ public class GraphTest {
 
         assertEquals(expected, actual);
         assertEquals(expected.getIncoming("a"), actual.getIncoming("a"));
-        assertEquals(map, actual.getIncoming("a"));
+        assertEquals(Set.of("b"), actual.getIncoming("a").get((Integer) 0));
+        assertEquals(Set.of("c"), actual.getIncoming("a").get((Integer) 1));
     }
 
     @Test
     public void getIncoming4() {
         Graph<String, Integer> expected = Graph.of(Triple.of("b", 0, "a"), Triple.of("c", 1, "a"), Triple.of("b", 0, "c"));
         Graph<String, Integer> actual = Graph.of();
-        Map<Integer, Set<String>> map = Map.of();
-
-        map = map.put(0, Set.of("b")).put(1, Set.of("c"));
 
         actual = actual.putEdge("b", "a", 0).putEdge("c", "a", 1).putEdge("b", "c", 0);
 
         assertEquals(expected, actual);
         assertEquals(expected.getIncoming("a"), actual.getIncoming("a"));
-        assertEquals(map, actual.getIncoming("a"));
+        assertEquals(Set.of("b"), actual.getIncoming("a").get((Integer) 0));
+        assertEquals(Set.of("c"), actual.getIncoming("a").get((Integer) 1));
     }
 
     @Test
@@ -603,45 +598,38 @@ public class GraphTest {
     public void getOutgoing2() {
         Graph<String, Integer> expected = Graph.of(Triple.of("a", 0, "b"));
         Graph<String, Integer> actual = Graph.of();
-        Map<Integer, Set<String>> map = Map.of();
-
-        map = map.put(0, Set.of("b"));
 
         actual = actual.putEdge("a", "b", 0);
 
         assertEquals(expected, actual);
         assertEquals(expected.getOutgoing("a"), actual.getOutgoing("a"));
-        assertEquals(map, actual.getOutgoing("a"));
+        assertEquals(Set.of("b"), actual.getOutgoing("a").get((Integer) 0));
     }
 
     @Test
     public void getOutgoing3() {
         Graph<String, Integer> expected = Graph.of(Triple.of("a", 0, "b"), Triple.of("a", 1, "c"));
         Graph<String, Integer> actual = Graph.of();
-        Map<Integer, Set<String>> map = Map.of();
-
-        map = map.put(0, Set.of("b")).put(1, Set.of("c"));
 
         actual = actual.putEdge("a", "b", 0).putEdge("a", "c", 1);
 
         assertEquals(expected, actual);
         assertEquals(expected.getOutgoing("a"), actual.getOutgoing("a"));
-        assertEquals(map, actual.getOutgoing("a"));
+        assertEquals(Set.of("b"), actual.getOutgoing("a").get((Integer) 0));
+        assertEquals(Set.of("c"), actual.getOutgoing("a").get((Integer) 1));
     }
 
     @Test
     public void getOutgoing4() {
         Graph<String, Integer> expected = Graph.of(Triple.of("a", 0, "b"), Triple.of("a", 1, "c"), Triple.of("b", 0, "c"));
         Graph<String, Integer> actual = Graph.of();
-        Map<Integer, Set<String>> map = Map.of();
-
-        map = map.put(0, Set.of("b")).put(1, Set.of("c"));
 
         actual = actual.putEdge("a", "b", 0).putEdge("a", "c", 1).putEdge("b", "c", 0);
 
         assertEquals(expected, actual);
         assertEquals(expected.getOutgoing("a"), actual.getOutgoing("a"));
-        assertEquals(map, actual.getOutgoing("a"));
+        assertEquals(Set.of("b"), actual.getOutgoing("a").get((Integer) 0));
+        assertEquals(Set.of("c"), actual.getOutgoing("a").get((Integer) 1));
     }
 
     @Test
@@ -962,34 +950,9 @@ public class GraphTest {
         Graph<String, Integer> graph2 = Graph.of(Triple.of("a", 0, "b"), Triple.of("b", 0, "b"));
         Graph<String, Integer> graph3 = Graph.of(Triple.of("a", 0, "b"), Triple.of("b", 0, "b"), Triple.of("b", 0, "b"));
 
-        assertEquals(0, graph0.numEdges());
-
-        graph = graph.putEdge("a", "b", 0);
-
-        assertEquals(1, graph1.numEdges());
-        assertEquals(1, graph.numEdges());
-
-        graph = graph.putEdge("b", "b", 0);
-
-        assertEquals(2, graph2.numEdges());
-        assertEquals(2, graph.numEdges());
-
-        graph = graph.putEdge("b", "b", 0);
-
-        assertEquals(2, graph3.numEdges());
-        assertEquals(2, graph.numEdges());
-    }
-
-    @Test
-    public void size() {
-        Graph<String, Integer> graph = Graph.of();
-        Graph<String, Integer> graph0 = Graph.of();
-        Graph<String, Integer> graph1 = Graph.of(Triple.of("a", 0, "a"));
-        Graph<String, Integer> graph2 = Graph.of(Triple.of("a", 0, "a"), Triple.of("b", 0, "b"));
-
         assertEquals(0, graph0.size());
 
-        graph = graph.putEdge("a", "a", 0);
+        graph = graph.putEdge("a", "b", 0);
 
         assertEquals(1, graph1.size());
         assertEquals(1, graph.size());
@@ -997,6 +960,11 @@ public class GraphTest {
         graph = graph.putEdge("b", "b", 0);
 
         assertEquals(2, graph2.size());
+        assertEquals(2, graph.size());
+
+        graph = graph.putEdge("b", "b", 0);
+
+        assertEquals(2, graph3.size());
         assertEquals(2, graph.size());
     }
 
@@ -1565,28 +1533,36 @@ public class GraphTest {
             }
         }
 
-        var mutated = graph.removeEdge("a", "b", 1);
+        var mutated = graph.removeEdge("a", "b", 1).removeEdge("b", "c", 2).putEdge("a", "b", 0);
 
-        Set<Triple<String, Integer, String>> expectedBefore = set;
-        Set<Triple<String, Integer, String>> expectedAfter = set.remove(Triple.of("a", 1, "b"));
+        Set<Graph<String, Integer>> expectedBefore = Set.of(Graph.of(), Graph.of(Triple.of("a", 1, "b")), Graph.of(Triple.of("b", 2, "c")));
+        Set<Graph<String, Integer>> expectedAfter = Set.of(Graph.of(), Graph.of(Triple.of("a", 0, "b")));
+
+        MutableSet<Graph<String, Integer>> actualBefore = new MutableSet<>(Set.of());
+        MutableSet<Graph<String, Integer>> actualAfter = new MutableSet<>(Set.of());
 
         graph.compare(mutated).forEach(e -> {
             var before = e[0];
             var after = e[1];
-            assertEquals(expectedBefore, before.asSet());
-            assertEquals(expectedAfter, after.asSet());
+            System.out.println(before + " " + after);
+            actualBefore.add(before);
+            actualAfter.add(after);
         });
+
+        assertEquals(expectedBefore, actualBefore.toImmutable());
+        assertEquals(expectedAfter, actualAfter.toImmutable());
     }
 
     @Test
     @SuppressWarnings("unchecked")
     public void merge1() {
         Graph<String, Integer> graph = Graph.of(Triple.of("a", 0, "b"), Triple.of("c", 1, "d"));
-//        List<Graph<String, Integer>> others = List.of(graph.putEdge("a", "c", 0), graph.removeEdge("c", "d", 1));
-        java.util.List<Graph<String, Integer>> others = new ArrayList<>();
-        others.add(graph.putEdge("a", "c", 0));
-        others.add(graph.removeEdge("c", "d", 1));
-        System.out.println(graph.merge(others.toArray(Graph[]::new)));
+        Graph<String, Integer> expected = Graph.of(Triple.of("a", 0, "b"), Triple.of("a", 0, "c"));
+
+        List<Graph<String, Integer>> others = List.of();
+        others = others.add(graph.putEdge("a", "c", 0));
+        others = others.add(graph.removeEdge("c", "d", 1));
+        assertEquals(expected, graph.merge(others.toArray(Graph[]::new)));
     }
 
     @Test
@@ -1609,5 +1585,21 @@ public class GraphTest {
         assertFalse(graph2.hasCycles(passNode, rejectEdge));
         assertFalse(graph2.hasCycles(rejectNode, passEdge));
         assertFalse(graph2.hasCycles(rejectNode, rejectEdge));
+    }
+
+    @Test
+    public void baseStream1() {
+        Graph<String, Integer> graph = Graph.of();
+
+        assertEquals(Set.of(), graph.asSet());
+
+        graph = graph.putEdge("a", "b", 0);
+        assertEquals(Set.of(Triple.of("a", 0, "b")), graph.asSet());
+
+        graph = graph.putEdge("a", "b", 0);
+        assertEquals(Set.of(Triple.of("a", 0, "b")), graph.asSet());
+
+        graph = graph.putEdge("a", "c", 0);
+        assertEquals(Set.of(Triple.of("a", 0, "b"), Triple.of("a", 0, "c")), graph.asSet());
     }
 }

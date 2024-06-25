@@ -29,9 +29,9 @@ import java.util.function.Predicate;
 public interface Graph<V, E> extends ContainingCollection<Triple<V, E, V>>, Mergeable<Graph<V, E>> {
 
     @SafeVarargs
-    @SuppressWarnings({"rawtypes", "unchecked"})
+    @SuppressWarnings("unchecked")
     static <V, E> Graph<V, E> of(Triple<V, E, V>... e) {
-        return e.length == 0 ? new GraphImpl(new Triple[]{}) : new GraphImpl<>(e);
+        return e.length == 0 ? GraphImpl.EMPTY : new GraphImpl<>(e);
     }
 
     Set<V> getNodes();
@@ -50,11 +50,11 @@ public interface Graph<V, E> extends ContainingCollection<Triple<V, E, V>>, Merg
 
     Set<E> getEdges(V src, V dst);
 
-    Map<E, Set<V>> getIncoming(V node);
+    DefaultMap<E, Set<V>> getIncoming(V node);
 
     Set<V> getIncoming(V node, E val);
 
-    Map<E, Set<V>> getOutgoing(V node);
+    DefaultMap<E, Set<V>> getOutgoing(V node);
 
     Set<V> getOutgoing(V node, E val);
 
@@ -102,8 +102,6 @@ public interface Graph<V, E> extends ContainingCollection<Triple<V, E, V>>, Merg
     }
 
     Graph<V, E> inverted();
-
-    int numEdges();
 
     Graph<V, E> remove(Object e);
 
