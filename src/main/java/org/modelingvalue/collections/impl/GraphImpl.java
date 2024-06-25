@@ -33,16 +33,16 @@ import java.util.stream.Stream;
 
 public class GraphImpl<V, E> extends CollectionImpl<Triple<V, E, V>> implements Graph<V, E> {
 
-    @Serial
-    private static final long serialVersionUID = -595672281912345963L;
-    protected DefaultMap<V, Pair<DefaultMap<V, Set<E>>, DefaultMap<E, Set<V>>>> outgoing;
-    protected DefaultMap<V, Pair<DefaultMap<V, Set<E>>, DefaultMap<E, Set<V>>>> incoming;
-    @SuppressWarnings({"rawtypes", "unchecked"})
-    public static final Graph EMPTY = new GraphImpl(new Triple[]{});
-
     private static final SerializableFunction<Object, Set<Object>> EMPTY_SET_FUNCTION = new SerializableFunction.SerializableFunctionImpl<>(i -> Set.of());
     private static final SerializableFunction<Object, Pair<DefaultMap<Object, Set<Object>>, DefaultMap<Object, Set<Object>>>> EMPTY_DEFAULT_MAP_FUNCTION = new SerializableFunction.SerializableFunctionImpl<>(k -> Pair.of(DefaultMap.of(EMPTY_SET_FUNCTION), DefaultMap.of(EMPTY_SET_FUNCTION)));
     private static final DefaultMap<Object, Pair<DefaultMap<Object, Set<Object>>, DefaultMap<Object, Set<Object>>>> EMPTY_DEFAULT_MAP = DefaultMap.of(EMPTY_DEFAULT_MAP_FUNCTION);
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    public static final Graph EMPTY = new GraphImpl(new Triple[]{});
+    @Serial
+    private static final long serialVersionUID = 4576688697509607005L;
+
+    protected DefaultMap<V, Pair<DefaultMap<V, Set<E>>, DefaultMap<E, Set<V>>>> outgoing;
+    protected DefaultMap<V, Pair<DefaultMap<V, Set<E>>, DefaultMap<E, Set<V>>>> incoming;
 
     @SuppressWarnings("unchecked")
     public GraphImpl(Triple<V, E, V>[] edges) {

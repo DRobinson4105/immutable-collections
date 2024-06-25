@@ -500,9 +500,6 @@ public class GraphTest {
     public void getIncoming3() {
         Graph<String, Integer> expected = Graph.of(Triple.of("b", 0, "a"), Triple.of("c", 1, "a"));
         Graph<String, Integer> actual = Graph.of();
-        DefaultMap<Integer, Set<String>> map = DefaultMap.of(k -> Set.of());
-
-        map = map.put(0, Set.of("b")).put(1, Set.of("c"));
 
         actual = actual.putEdge("b", "a", 0).putEdge("c", "a", 1);
 
@@ -1544,7 +1541,6 @@ public class GraphTest {
         graph.compare(mutated).forEach(e -> {
             var before = e[0];
             var after = e[1];
-            System.out.println(before + " " + after);
             actualBefore.add(before);
             actualAfter.add(after);
         });
