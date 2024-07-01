@@ -82,7 +82,7 @@ public class MutableMap<K, V> extends AbstractMap<K, V> implements Mutable<Entry
     @Override
     public V remove(Object key) {
         V pre = map.get((K) key);
-        map = map.remove(key);
+        map = map.removeKey((K) key);
         return pre;
     }
 
