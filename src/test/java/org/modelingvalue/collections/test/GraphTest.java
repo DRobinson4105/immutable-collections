@@ -20,6 +20,7 @@
 
 package org.modelingvalue.collections.test;
 
+import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
 import org.modelingvalue.collections.*;
 import org.modelingvalue.collections.mutable.MutableSet;
@@ -28,6 +29,7 @@ import org.modelingvalue.collections.util.TriFunction;
 import org.modelingvalue.collections.util.Triple;
 
 import java.util.Iterator;
+import java.util.Objects;
 import java.util.Spliterator;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
@@ -1581,6 +1583,35 @@ public class GraphTest {
         assertFalse(graph2.hasCycles(passNode, rejectEdge));
         assertFalse(graph2.hasCycles(rejectNode, passEdge));
         assertFalse(graph2.hasCycles(rejectNode, rejectEdge));
+    }
+
+    @Test
+    public void cycle2() {
+        Graph<String, Integer> graph = Graph.of(Triple.of("a", 0, "b"), Triple.of("b", 0, "b"));
+        assertFalse(graph.hasCycles(node -> true, edge -> !Objects.equals(edge.a(), edge.c())));
+    }
+
+    @Test
+    public void cycle3() {
+        Graph<String, Integer> graph1 = Graph.of(Triple.of("a", 0, "b"), Triple.of("a", 0, "c"), Triple.of("c", 0, "b"));
+        Graph<String, Integer> graph2 = Graph.of(Triple.of("a", 0, "b"), Triple.of("a", 0, "c"), Triple.of("c", 0, "b"));
+        Graph<String, Integer> graph3 = Graph.of(Triple.of("a", 0, "b"), Triple.of("b", 0, "a"));
+        Graph<String, Integer> graph4 = Graph.of();
+        Graph<String, Integer> graph5 = Graph.of(Triple.of("a", 0, "a"));
+        Graph<String, Integer> graph6 = Graph.of(Triple.of("a", 0, "b"), Triple.of("b", 1, "a"));
+        Graph<String, Integer> graph7 = Graph.of(Triple.of("a", 0, "b"));
+        assertFalse(graph1.hasCycles(node -> true, edge -> true));
+        assertFalse(graph2.hasCycles(node -> true, edge -> true));
+        assertTrue(graph3.hasCycles(node -> true, edge -> true));
+        assertTrue(graph6.hasCycles(node -> true, edge -> true));
+        assertFalse(graph6.hasCycles(node -> false, edge -> true));
+        assertFalse(graph6.hasCycles(node -> true, edge -> false));
+        assertFalse(graph6.hasCycles(node -> false, edge -> false));
+        assertFalse(graph6.hasCycles(node -> !node.equals("a"), edge -> true));
+        assertFalse(graph6.hasCycles(node -> true, edge -> edge.b() != 0));
+        assertFalse(graph6.hasCycles(node -> true, edge -> edge.b() != 1));
+        assertTrue(graph6.hasCycles(node -> true, edge -> edge.b() != 2));
+
     }
 
     @Test

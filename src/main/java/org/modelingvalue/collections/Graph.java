@@ -24,6 +24,9 @@ import org.modelingvalue.collections.impl.GraphImpl;
 import org.modelingvalue.collections.util.Mergeable;
 import org.modelingvalue.collections.util.Triple;
 
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.function.Predicate;
 
 public interface Graph<V, E> extends ContainingCollection<Triple<V, E, V>>, Mergeable<Graph<V, E>> {
@@ -67,38 +70,43 @@ public interface Graph<V, E> extends ContainingCollection<Triple<V, E, V>>, Merg
     Set<V> getOutgoingNodes(V node);
 
     default boolean hasCycles(Predicate<V> nodePredicate, Predicate<Triple<V, E, V>> edgePredicate) {
-        var safe = new java.util.HashSet<V>();
+        var inDegree = new HashMap<V, Integer>();
+        var queue = new LinkedList<V>();
+        var visited = new HashSet<>();
+        var outgoing = new HashMap<V, HashSet<V>>();
 
-        nextNode: for (V node : getNodes()) {
-            if (!nodePredicate.test(node)) continue;
-            var active = new java.util.HashSet<V>();
-            var queue = new java.util.LinkedList<V>();
-            queue.add(node);
+        Set<V> nodes = getNodes();
+        int size = nodes.size();
 
-            while (!queue.isEmpty()) {
-                V curr = queue.pollFirst();
-                active.add(curr);
-                if (safe.contains(curr)) continue nextNode;
-
-                for (Entry<E, Set<V>> entry : getOutgoing(curr)) {
-                    for (V next : entry.getValue()) {
-                        if (!nodePredicate.test(next) || !edgePredicate.test(Triple.of(curr, entry.getKey(), next))) {
-                            continue;
-                        }
-
-                        if (active.contains(next)) {
-                            return true;
-                        } else {
-                            queue.add(next);
-                        }
-                    }
-                }
+        for (V node : nodes) {
+            if (!nodePredicate.test(node)) {
+                visited.add(node);
+                continue;
             }
-
-            safe.addAll(active);
+            inDegree.put(node, getIncomingNodes(node).filter(inc -> {
+                if (nodePredicate.test(inc) && getEdges(inc, node).anyMatch(e -> edgePredicate.test(Triple.of(inc, e, node)))) {
+                    var set = outgoing.getOrDefault(inc, new HashSet<>());
+                    set.add(node);
+                    outgoing.put(inc, set);
+                    return true;
+                }
+                return false;
+            }).size());
+            if (inDegree.get(node) == 0) queue.add(node);
         }
 
-        return false;
+        while (!queue.isEmpty()) {
+            V curr = queue.pollFirst();
+            visited.add(curr);
+            for (V next : getOutgoingNodes(curr)) {
+                if (outgoing.containsKey(curr) && outgoing.get(curr).contains(next)) {
+                    inDegree.put(next, inDegree.get(next) - 1);
+                    if (inDegree.get(next) == 0) queue.add(next);
+                }
+            }
+        }
+
+        return visited.size() != size;
     }
 
     Graph<V, E> inverted();
