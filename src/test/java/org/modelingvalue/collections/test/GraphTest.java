@@ -1596,22 +1596,18 @@ public class GraphTest {
         Graph<String, Integer> graph1 = Graph.of(Triple.of("a", 0, "b"), Triple.of("a", 0, "c"), Triple.of("c", 0, "b"));
         Graph<String, Integer> graph2 = Graph.of(Triple.of("a", 0, "b"), Triple.of("a", 0, "c"), Triple.of("c", 0, "b"));
         Graph<String, Integer> graph3 = Graph.of(Triple.of("a", 0, "b"), Triple.of("b", 0, "a"));
-        Graph<String, Integer> graph4 = Graph.of();
-        Graph<String, Integer> graph5 = Graph.of(Triple.of("a", 0, "a"));
-        Graph<String, Integer> graph6 = Graph.of(Triple.of("a", 0, "b"), Triple.of("b", 1, "a"));
-        Graph<String, Integer> graph7 = Graph.of(Triple.of("a", 0, "b"));
+        Graph<String, Integer> graph4 = Graph.of(Triple.of("a", 0, "b"), Triple.of("b", 1, "a"));
         assertFalse(graph1.hasCycles(node -> true, edge -> true));
         assertFalse(graph2.hasCycles(node -> true, edge -> true));
         assertTrue(graph3.hasCycles(node -> true, edge -> true));
-        assertTrue(graph6.hasCycles(node -> true, edge -> true));
-        assertFalse(graph6.hasCycles(node -> false, edge -> true));
-        assertFalse(graph6.hasCycles(node -> true, edge -> false));
-        assertFalse(graph6.hasCycles(node -> false, edge -> false));
-        assertFalse(graph6.hasCycles(node -> !node.equals("a"), edge -> true));
-        assertFalse(graph6.hasCycles(node -> true, edge -> edge.b() != 0));
-        assertFalse(graph6.hasCycles(node -> true, edge -> edge.b() != 1));
-        assertTrue(graph6.hasCycles(node -> true, edge -> edge.b() != 2));
-
+        assertTrue(graph4.hasCycles(node -> true, edge -> true));
+        assertFalse(graph4.hasCycles(node -> false, edge -> true));
+        assertFalse(graph4.hasCycles(node -> true, edge -> false));
+        assertFalse(graph4.hasCycles(node -> false, edge -> false));
+        assertFalse(graph4.hasCycles(node -> !node.equals("a"), edge -> true));
+        assertFalse(graph4.hasCycles(node -> true, edge -> edge.b() != 0));
+        assertFalse(graph4.hasCycles(node -> true, edge -> edge.b() != 1));
+        assertTrue(graph4.hasCycles(node -> true, edge -> edge.b() != 2));
     }
 
     @Test
