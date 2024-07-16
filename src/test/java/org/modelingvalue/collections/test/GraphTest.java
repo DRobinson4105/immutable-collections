@@ -20,7 +20,6 @@
 
 package org.modelingvalue.collections.test;
 
-import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
 import org.modelingvalue.collections.*;
 import org.modelingvalue.collections.mutable.MutableSet;
@@ -1451,9 +1450,9 @@ public class GraphTest {
         Graph<String, Integer> graph4 = Graph.of(Triple.of("a", 0, "a"), Triple.of("a", 0, "b"));
         Graph<String, Integer> expected = Graph.of(Triple.of("a", 0, "b"));
 
-        assertEquals(expected, graph1.replace(Triple.of("a", 0, "a"), Triple.of("a", 0, "b")));
+        assertEquals(graph1, graph1.replace(Triple.of("a", 0, "a"), Triple.of("a", 0, "b")));
         assertEquals(expected, graph2.replace(Triple.of("a", 0, "a"), Triple.of("a", 0, "b")));
-        assertEquals(expected, graph3.replace(Triple.of("a", 0, "a"), Triple.of("a", 0, "b")));
+        assertEquals(graph3, graph3.replace(Triple.of("a", 0, "a"), Triple.of("a", 0, "b")));
         assertEquals(expected, graph4.replace(Triple.of("a", 0, "a"), Triple.of("a", 0, "b")));
     }
 
