@@ -492,12 +492,12 @@ public class GraphImpl<V, E> extends CollectionImpl<Triple<V, E, V>> implements 
 
     @Override
     public Graph<V, E> replace(Object pre, Triple<V, E, V> post) {
-        return remove(pre).add(post);
+        return contains(pre) ? remove(pre).add(post) : this;
     }
 
     @Override
     public Graph<V, E> replaceFirst(Object pre, Triple<V, E, V> post) {
-        return replace(pre, post);
+        return contains(pre) ? remove(pre).add(post) : this;
     }
 
     @Override
