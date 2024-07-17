@@ -27,14 +27,28 @@ import org.modelingvalue.collections.util.Triple;
 import java.util.HashSet;
 import java.util.function.Predicate;
 
+/**
+ * <p>An immutable directed graph. The graph cannot contain duplicate edges
+ * (edges that have the same source vertex, edge weight, and destination vertex) but can contain
+ * multiple edges with different edge weights from the same source and destination vertices. </p>
+ *
+ * <p>Since the graph is immutable, none of the data modification methods will affect the data in
+ * that instance of the graph but will return a new updated graph with that change made.</p>
+ *
+ * <p>The {@link GraphImpl} implementation of this interface is used to construct graphs returned
+ * by the {@link #of(Triple[])} method.</p>
+ *
+ * <p>This graph represents a triplestore such that each edge is a {@link Triple} in the form of
+ * (source vertex, edge weight, destination vertex).</p>
+ * @param <V> the type of vertices in this graph
+ * @param <E> the type of edge weights in this graph
+ */
 public interface Graph<V, E> extends ContainingCollection<Triple<V, E, V>>, Mergeable<Graph<V, E>> {
     /**
-     * Constructs an immutable graph from the specified edges and returns it.
+     * Constructs an immutable directed graph with the specified directed edges and returns it.
      *
      * @param e array of edges, each represented by a {@link Triple} structured as (source vertex,
      *          edge weight, destination vertex)
-     * @param <V> the type of vertices in the graph
-     * @param <E> the type of edges in the graph
      * @return the constructed immutable graph, or an empty graph if no edges are provided
      * @throws NullPointerException if any of the edges are null
      */
@@ -45,136 +59,131 @@ public interface Graph<V, E> extends ContainingCollection<Triple<V, E, V>>, Merg
     }
 
     /**
-     * Returns a set of all vertices in this graph.
+     * Returns a set of the vertices contained in this graph. Only returns vertices that are either
+     * a source or destination vertex in at least one edge.
      *
-     * @return a set of vertices of type {@code V} in this graph
+     * @return a set of the vertices contained in this graph
      */
     Set<V> getNodes();
 
     /**
      * Removes the specified vertex and all edges connected to it from this graph and returns the
-     * updated graph.
+     * updated graph. If no operation is done, {@code this} is returned.
      *
      * @param node vertex to be removed
-     * @return a new graph without the specified vertex or any of the edges connected to it, or
-     * this graph if {@code node} is null or does not exist in this graph
+     * @return a new graph without the specified vertex or any of the edges connected to it
      */
     Graph<V, E> removeNode(V node);
 
     /**
      * Returns true if this graph contains the specified vertex.
      *
-     * @param node vertex that is checked
-     * @return {@code true} if this graph contains the specified vertex, {@code false} otherwise
-     * or {@code node} is null
+     * @param node vertex to be checked
+     * @return {@code true} if this graph contains the specified vertex
      */
     boolean containsNode(V node);
 
     /**
      * Adds a new edge with the specified weight between the source and destination vertices and
-     * returns the updated graph. If the vertices do not exist in the graph, they will be added.
+     * returns the updated graph. If either vertex does not exist in the graph, they will be added.
+     * If no operation is done, {@code this} is returned.
      *
      * @param src source vertex of the edge
      * @param dst destination vertex of the edge
      * @param val weight of the edge
-     * @return a new graph with the added edge and vertices if they did not exist before, or this
-     * graph if any of the parameters are null or the specified edge already exists in this graph
+     * @return a new graph with the added edge and vertices if they did not exist before
      */
     Graph<V, E> putEdge(V src, V dst, E val);
 
     /**
-     * Returns true if the graph contains an edge with the specified weight between the given
-     * source and destination vertices.
+     * Returns true if the graph contains an edge with the specified weight between the source and
+     * destination vertices.
      *
      * @param src source vertex of the edge
      * @param dst destination vertex of the edge
      * @param val weight of the edge
-     * @return true if the graph contains the specified edge, {@code false} otherwise or if any of
-     * the parameters are null
+     * @return true if the graph contains the specified edge
      */
     boolean containsEdge(V src, V dst, E val);
 
     /**
-     * Removes the specified edge with the specified weight between the source and destination
-     * vertices and returns the updated graph. If either vertex has no other edges connected to it
-     * after the removal, that vertex is also removed.
+     * Removes the edge with the specified weight between the source and destination vertices and
+     * returns the updated graph. If either vertex has no other edges connected to it after the
+     * removal, that vertex is also removed. If no operation is done, {@code this} is returned.
      *
      * @param src source vertex of the edge
      * @param dst destination vertex of the edge
      * @param val weight of the edge
-     * @return a new graph without the specified edge and without either vertex if it no longer has
-     * any connected edges, or this graph if any of the parameters are null or the specified edge
-     * does not exist in this graph
+     * @return a new graph without the specified edge or either vertex if that vertex no longer has
+     * any connected edges
      */
     Graph<V, E> removeEdge(V src, V dst, E val);
 
     /**
-     * Removes all edges between the specified source and destination vertices and returns the
-     * updated graph. If either vertex has no other edges connected to it after the removal, that
-     * vertex is also removed.
+     * Removes all edges between the source and destination vertices and returns the updated
+     * graph. If either vertex has no other edges connected to it after the removal, that vertex is
+     * also removed. If no operation is done, {@code this} is returned.
      *
      * @param src source vertex
      * @param dst destination vertex
-     * @return a new graph without any edges from the source to the destination and without either
-     * vertex if it no loner has any connected edges, or this graph if {@code src} or {@code dst}
-     * is null or does not exist in this graph
+     * @return a new graph without any edges from the source to the destination or either vertex if
+     * that vertex no loner has any connected edges
      */
     Graph<V, E> removeEdges(V src, V dst);
 
     /**
-     * Returns a set of the edge weights between the specified source and destination vertices.
+     * Returns a set of the edge weights between the source and destination vertices.
      *
      * @param src source vertex
      * @param dst destination vertex
-     * @return a set of the edge weights from the source vertex to the destination vertex, or this
-     * graph if {@code src} or {@code dst} is null or does not exist in this graph
+     * @return a set of the edge weights from the source vertex to the destination vertex, or null
+     * if {@code src} or {@code dst} is null or does not exist in this graph
      */
     Set<E> getEdges(V src, V dst);
 
     /**
-     * Returns a map of the incoming edge weights to the specified vertex. In the map, each edge
-     * weight is mapped to a set of vertices that have edges with that weight to the specified
-     * vertex.
+     * Returns a map where each key is an edge weight and each value is a set of vertices that have
+     * edges with that weight directed to the specified vertex.
      *
      * @param node vertex to be checked
      * @return a map where each key is an edge weight and each value is a set of vertices that have
-     * edges with that weight to the specified vertex, or null if {@code node} is null or does not
-     * exist in this graph
+     * edges with that weight directed to the specified vertex, or null if {@code node} is null or
+     * does not exist in this graph
      */
     DefaultMap<E, Set<V>> getIncoming(V node);
 
     /**
-     * Returns a set of vertices that have edges with the specified weight to the specified vertex.
+     * Returns a set of vertices that have edges with the specified weight directed to the
+     * specified vertex.
      *
      * @param node vertex to be checked
      * @param val edge weight
-     * @return a set of the vertices that have edges to the specified vertex with the specified
-     * weight, or null if {@code node} is null or does not exist in this graph or {@code val} is
-     * null
+     * @return a set of vertices that have edges with the specified weight directed to the
+     * specified vertex, or null if {@code node} is null or does not exist in this graph or
+     * {@code val} is null
      */
     Set<V> getIncoming(V node, E val);
 
     /**
-     * Returns a map of the outgoing edge weights from the specified vertex. In the map, each edge
-     * weight is mapped to a set of vertices that have edges with that weight from the specified
-     * vertex.
+     * Returns a map where each key is an edge weight and each value is a set of vertices that have
+     * edges with that weight directed from the specified vertex.
      *
      * @param node vertex to be checked
      * @return a map where each key is an edge weight and each value is a set of vertices that have
-     * edges with that weight from the specified vertex, or null if {@code node} is null or does
-     * not exist in this graph
+     * edges with that weight directed from the specified vertex, or null if {@code node} is null
+     * or does not exist in this graph
      */
     DefaultMap<E, Set<V>> getOutgoing(V node);
 
     /**
-     * Returns a set of vertices that have edges with the specified weight from the specified
-     * vertex.
+     * Returns a set of vertices that have edges with the specified weight directed from the
+     * specified vertex.
      *
      * @param node vertex to be checked
      * @param val edge weight
-     * @return a set of the vertices that have edges from the specified vertex with the specified
-     * weight, or null if {@code node} is null or does not exist in this graph or {@code val} is
-     * null
+     * @return a set of vertices that have edges with the specified weight directed from the
+     * specified vertex, or null if {@code node} is null or does not exist in this graph or
+     * {@code val} is null
      */
     Set<V> getOutgoing(V node, E val);
 
@@ -208,7 +217,7 @@ public interface Graph<V, E> extends ContainingCollection<Triple<V, E, V>>, Merg
     /**
      * Returns a set of vertices that have edges directed from the specified vertex.
      *
-     * @param node vertex to be queried
+     * @param node vertex to be checked
      * @return a set of the vertices that have edges directed from the specified vertex, or null if
      * {@code node} is null or does not exist in this graph
      */
@@ -259,107 +268,94 @@ public interface Graph<V, E> extends ContainingCollection<Triple<V, E, V>>, Merg
     }
 
     /**
-     * Returns a new graph with all the directed edges reversed. Each edge in the original graph is
-     * reversed so that it points from its destination to its source in the new graph.
+     * Returns a new graph with all directed edges from this graph reversed such that each
+     * edge's source and destinations vertices are swapped.
+     *
      * @return a new graph with all directed edges reversed
      */
     Graph<V, E> inverted();
 
     /**
      * Removes the specified edge and returns the updated graph. If either vertex from the edge has
-     * no other edges connected to it after the removal, that vertex is also removed. The edge is
-     * assumed to be a {@link Triple} in the form of (source vertex, edge weight, destination
-     * vertex).
+     * no other edges connected to it after the removal, that vertex is also removed. If no
+     * operation is done, {@code this} is returned.
      *
      * @param e edge to be removed, represented as a {@link Triple} in the form of (source vertex,
      *          edge weight, destination vertex)
      * @return a new graph without the specified edge and without either vertex if it no longer has
-     * any connected edges, or this graph if {@code e} is null or the specified edge does not exist
-     * in this graph
+     * any connected edges
      */
     Graph<V, E> remove(Object e);
 
     /**
      * Removes the specified edges and returns the updated graph. If any vertex from the edges has
-     * no other edges connected to it after the removal, that vertex is also removed. Each edge is
-     * assumed to be a {@link Triple} in the form of (source vertex, edge weight, destination
-     * vertex).
+     * no other edges connected to it after the removal, that vertex is also removed. If no
+     * operation is done, {@code this} is returned.
      *
      * @param e collection of edges to be removed, each represented as a {@link Triple} in the
      *          form of (source vertex, edge weight, destination vertex)
      * @return a new graph without the specified edges and without any vertices that no longer have
-     * any connected edges, or this graph if {@code e} is null or none of the specified edges exist
-     * in this graph
+     * any connected edges
      */
     Graph<V, E> removeAll(Collection<?> e);
 
     /**
      * Adds the specified edge and returns the updated graph. If the vertices do not exist in the
-     * graph, they will be added.
+     * graph, they will be added. If no operation is done, {@code this} is returned.
      *
-     * @param e edge to be added, represented as a {@link Triple} in the form of (source vertex,
-     *          edge weight, destination vertex)
-     * @return a new graph with the added edge and vertices if they did not exist before, or this
-     * graph if {@code e} is null or already exists in this graph
+     * @param e edge to be added
+     * @return a new graph with the added edge and vertices if they did not exist before
      */
     Graph<V, E> add(Triple<V, E, V> e);
 
     /**
      * Adds the specified edges and returns the updated graph. If the vertices do not exist in the
-     * graph, they will be added.
+     * graph, they will be added. If no operation is done, {@code node} this is returned.
      *
-     * @param e collection of edges to be added, each represented as a {@link Triple} in the form
-     *          of (source vertex, edge weight, destination vertex)
-     * @return a new graph with the added edges and vertices if they did not exist before, or this
-     * graph if {@code e} is null or all of the edges already exist in this graph
+     * @param e collection of edges to be added
+     * @return a new graph with the added edges and vertices if they did not exist before
      */
     Graph<V, E> addAll(Collection<? extends Triple<V, E, V>> e);
 
     /**
      * Adds the specified edge and returns the updated graph. If the vertices do not exist in the
-     * graph, they will be added.
+     * graph, they will be added. If no operation is done, {@code this} is returned.
      *
-     * @param e edge to be added, represented as a {@link Triple} in the form of (source vertex,
-     *          edge weight, destination vertex)
-     * @return a new graph with the added edge and vertices if they did not exist before, or this
-     * graph if {@code e} is null or already exists in this graph
+     * @param e edge to be added
+     * @return a new graph with the added edge and vertices if they did not exist before
      */
     Graph<V, E> addUnique(Triple<V, E, V> e);
 
     /**
      * Adds the specified edges and returns the updated graph. If the vertices do not exist in the
-     * graph, they will be added.
+     * graph, they will be added. If no operation is done, {@code node} this is returned.
      *
-     * @param e collection of edges to be added, each represented as a {@link Triple} in the form
-     *          of (source vertex, edge weight, destination vertex)
-     * @return a new graph with the added edges and vertices if they did not exist before, or this
-     * graph if {@code e} is null or all of the edges already exist in this graph
+     * @param e collection of edges to be added
+     * @return a new graph with the added edges and vertices if they did not exist before
      */
     Graph<V, E> addAllUnique(Collection<? extends Triple<V, E, V>> e);
 
     /**
      * If {@code pre} is a {@link Triple} in the form of (source vertex, edge weight, destination
      * vertex) and that edge exists in this graph, {@code pre} is removed and {@code post} is added
-     * and the updated graph is returned. If {@code pre} does not exist in this graph, then this
-     * graph is returned.
+     * and the updated graph is returned. If no operation is done, {@code this} is returned.
      *
      * @param pre edge to be removed
      * @param post edge to be added
-     * @return a new graph with {@code pre} removed and {@code post} added if and only if
-     * {@code pre} exists in this graph, otherwise this graph
+     * @return a new graph with {@code pre} removed and {@code post} added if {@code pre} exists in
+     * this graph, otherwise, {@code this} is returned
      */
     Graph<V, E> replace(Object pre, Triple<V, E, V> post);
 
     /**
      * If {@code pre} is a {@link Triple} in the form of (source vertex, edge weight, destination
      * vertex) and that edge exists in this graph, {@code pre} is removed and {@code post} is added
-     * and the updated graph is returned. If {@code pre} does not exist in this graph, then this
-     * graph is returned.
+     * and the updated graph is returned. If no operation is done, {@code this} is returned.
      *
      * @param pre edge to be removed
      * @param post edge to be added
-     * @return a new graph with {@code pre} removed and {@code post} added if and only if
-     * {@code pre} exists in this graph, otherwise this graph
+     * @return a new graph with {@code pre} removed and {@code post} added if {@code pre} exists in
+     * this graph, otherwise, {@code this} is returned
      */
     Graph<V, E> replaceFirst(Object pre, Triple<V, E, V> post);
 
