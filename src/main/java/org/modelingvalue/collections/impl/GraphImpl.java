@@ -31,23 +31,51 @@ import java.util.*;
 import java.util.function.*;
 import java.util.stream.Stream;
 
+/**
+ * <p>An implementation of the {@link Graph} interface. This implementation does not permit
+ * {@code null} vertices or edge weights.</p>
+ *
+ * <p>This implementation provides constant-time performance for the basic operations (putEdge,
+ * removeEdge, and containsEdge).</p>
+ * @param <V> the type of vertices in this graph
+ * @param <E> the type of edge weights in this graph
+ * @implNote The graph is stored as a map where each vertex is mapped to a {@link Quadruple} that
+ * contains four maps that represents the incoming and outgoing edges for the vertex each in two
+ * different ways, a map of each edge weight to all the vertices that have edges to/from the key
+ * vertex with that weight and a map of each vertex to all the edge weights of edges between the
+ * two vertices
+ */
 public class GraphImpl<V, E> extends CollectionImpl<Triple<V, E, V>> implements Graph<V, E> {
 
     private static final SerializableFunction<Object, Set<Object>> EMPTY_SET_FUNCTION = new SerializableFunction.SerializableFunctionImpl<>(i -> Set.of());
     private static final SerializableFunction<Object, Pair<DefaultMap<Object, Set<Object>>, DefaultMap<Object, Set<Object>>>> EMPTY_DEFAULT_MAP_FUNCTION = new SerializableFunction.SerializableFunctionImpl<>(k -> Pair.of(DefaultMap.of(EMPTY_SET_FUNCTION), DefaultMap.of(EMPTY_SET_FUNCTION)));
     private static final DefaultMap<Object, Pair<DefaultMap<Object, Set<Object>>, DefaultMap<Object, Set<Object>>>> EMPTY_DEFAULT_MAP = DefaultMap.of(EMPTY_DEFAULT_MAP_FUNCTION);
-    @SuppressWarnings({"rawtypes", "unchecked"})
-    public static final Graph EMPTY = new GraphImpl(new Triple[]{});
+    @SuppressWarnings("rawtypes")
+    public static final Graph EMPTY = new GraphImpl();
     @Serial
     private static final long serialVersionUID = 4576688697509607005L;
 
     protected DefaultMap<V, Pair<DefaultMap<V, Set<E>>, DefaultMap<E, Set<V>>>> outgoing;
     protected DefaultMap<V, Pair<DefaultMap<V, Set<E>>, DefaultMap<E, Set<V>>>> incoming;
 
+    /**
+     * Constructs an empty immutable directed graph.
+     */
     @SuppressWarnings("unchecked")
-    public GraphImpl(Triple<V, E, V>[] edges) {
+    public GraphImpl() {
         this.outgoing = (DefaultMap<V, Pair<DefaultMap<V, Set<E>>, DefaultMap<E, Set<V>>>>) (Object) EMPTY_DEFAULT_MAP;
         this.incoming = (DefaultMap<V, Pair<DefaultMap<V, Set<E>>, DefaultMap<E, Set<V>>>>) (Object) EMPTY_DEFAULT_MAP;
+    }
+
+    /**
+     * Constructs an immutable directed graph with the specified directed edges.
+     *
+     * @param edges array of edges, each represented by a {@link Triple} structured as (source
+     *              vertex, edge weight, destination vertex)
+     * @throws NullPointerException if any of the edges are null
+     */
+    public GraphImpl(Triple<V, E, V>[] edges) {
+        this();
 
         for (Triple<V, E, V> edge : edges) {
             GraphImpl<V, E> next = this.putEdge(edge.a(), edge.c(), edge.b());
@@ -137,9 +165,7 @@ public class GraphImpl<V, E> extends CollectionImpl<Triple<V, E, V>> implements 
 
     @Override
     public GraphImpl<V, E> putEdge(V src, V dst, E val) {
-        if (src == null || dst == null || val == null) return this;
-        if (outgoing.getEntry(src) != null && outgoing.get(src).a().getEntry(dst) != null && outgoing.get(src).a().get(dst).contains(val))
-            return this;
+        if (src == null || dst == null || val == null || containsEdge(src, dst, val)) return this;
 
         var newIncoming = incoming;
         var newOutgoing = outgoing;
@@ -185,19 +211,19 @@ public class GraphImpl<V, E> extends CollectionImpl<Triple<V, E, V>> implements 
 
         var ve = pair.a();
         ve = ve.put(dst, ve.get(dst).remove(val));
-        if (ve.get(dst).isEmpty()) {
+        if (ve.get(dst).isEmpty())
             ve = ve.removeKey(dst);
-        }
 
-        if (ve.isEmpty()) {
+        if (ve.isEmpty())
             return graph.removeKey(src);
-        }
 
         var ev = pair.b();
         ev = ev.put(val, ev.get(val).remove(dst));
-        if (ev.get(val).isEmpty()) {
+        if (ev.get(val).isEmpty())
             ev = ev.removeKey(val);
-        }
+
+        if (ev.isEmpty())
+            return graph.removeKey(src);
 
         pair = Pair.of(ve, ev);
         return graph.put(src, pair);
@@ -205,7 +231,8 @@ public class GraphImpl<V, E> extends CollectionImpl<Triple<V, E, V>> implements 
 
     @Override
     public Graph<V, E> removeEdges(V src, V dst) {
-        if (src == null || dst == null || outgoing.getEntry(src) == null || !outgoing.get(src).a().contains(dst)) return this;
+        if (src == null || dst == null || outgoing.getEntry(src) == null || !outgoing.get(src).a().contains(dst))
+            return this;
 
         return new GraphImpl<>(removeEdgesHelper(outgoing, src, dst), removeEdgesHelper(incoming, dst, src));
     }
@@ -282,6 +309,7 @@ public class GraphImpl<V, E> extends CollectionImpl<Triple<V, E, V>> implements 
 
     @Override
     public Graph<V, E> inverted() {
+        if (isEmpty()) return this;
         return new GraphImpl<>(incoming, outgoing);
     }
 
