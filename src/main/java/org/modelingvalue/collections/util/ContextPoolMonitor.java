@@ -81,23 +81,10 @@ public class ContextPoolMonitor extends Thread {
         }
 
         private List<PoolInfo> determinePools() {
-            return Thread.getAllStackTraces()
-                         .entrySet()
-                         .stream()
-                         .map(WorkerInfo::of)
-                         .filter(Objects::nonNull)
-                         .collect(Collectors.groupingBy(wi -> wi.poolNr))
-                         .values()
-                         .stream()
-                         .map(l -> new PoolInfo(l.get(0).poolNr, l))
-                         .sorted(Comparator.comparing(p -> p.poolNr))
-                         .toList();
+            return Thread.getAllStackTraces().entrySet().stream().map(WorkerInfo::of).filter(Objects::nonNull).collect(Collectors.groupingBy(wi -> wi.poolNr)).values().stream().map(l -> new PoolInfo(l.get(0).poolNr, l)).sorted(Comparator.comparing(p -> p.poolNr)).toList();
         }
 
-        private record PoolInfo(
-                int poolNr,
-                List<WorkerInfo> workerInfos
-        ) {
+        private record PoolInfo(int poolNr, List<WorkerInfo> workerInfos) {
             public String state() {
                 return workerInfos.stream().map(WorkerInfo::describeState).sorted().collect(Collectors.joining(" "));
             }
@@ -115,19 +102,12 @@ public class ContextPoolMonitor extends Thread {
             }
         }
 
-        private record WorkerInfo(
-                int poolNr,
-                int workerNr,
-                State state,
-                boolean stuck,
-                Thread thread,
-                StackTraceElement[] stack
-        ) {
+        private record WorkerInfo(int poolNr, int workerNr, State state, boolean stuck, Thread thread, StackTraceElement[] stack) {
             private static WorkerInfo of(Map.Entry<Thread, StackTraceElement[]> e) {
                 if (e.getKey() instanceof DclareWorkerThread dwt) {
-                    State               state = dwt.getState();
+                    State state = dwt.getState();
                     StackTraceElement[] stack = e.getValue();
-                    boolean             stuck = state == State.RUNNABLE && stack[0].toString().contains("java.util.concurrent.ForkJoinPool$WorkQueue.helpComplete(");
+                    boolean stuck = state == State.RUNNABLE && stack[0].toString().contains("java.util.concurrent.ForkJoinPool$WorkQueue.helpComplete(");
                     return new WorkerInfo(dwt.getPool().poolNr(), dwt.getNr(), state, stuck, e.getKey(), stack);
                 } else {
                     return null;
@@ -135,10 +115,10 @@ public class ContextPoolMonitor extends Thread {
             }
 
             private String describeState() {
-                return (thread instanceof ContextThread ct ? "" : "+") + switch (state) {
-                    case RUNNABLE -> stuck ? "!" : "R";
-                    case WAITING, TIMED_WAITING -> ".";
-                    case BLOCKED, TERMINATED, NEW -> "a";
+                return (thread instanceof ContextThread ? "" : "+") + switch (state) {
+                case RUNNABLE -> stuck ? "!" : "R";
+                case WAITING, TIMED_WAITING -> ".";
+                case BLOCKED, TERMINATED, NEW -> "a";
                 };
             }
         }
